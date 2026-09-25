@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoChat - Pro Max Ultra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .message-enter { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #drawing-modal { display: none; }
+        #drawing-canvas { background: white; cursor: crosshair; touch-action: none; border-radius: 4px;}
+        
+        .tool-btn { padding: 8px; border-radius: 8px; background-color: #4b5563; transition: 0.2s; }
+        .tool-btn.active { background-color: #3b82f6; outline: 2px solid white; }
+        #emoji-picker { display: none; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        
+        .recording { animation: pulseRed 1s infinite; }
+        @keyframes pulseRed {
+            0% { color: #ef4444; transform: scale(1); }
+            50% { color: #f87171; transform: scale(1.1); }
+            100% { color: #ef4444; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen flex overflow-hidden font-sans">
+
+    <!-- Tela de Login e Customização de Perfil -->
+    <div id="login-screen" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700 max-h-[95vh] overflow-y-auto no-scrollbar">
+            <h1 class="text-3xl font-bold text-center text-blue-400 mb-2">GeoChat</h1>
+            
+            <!-- Pré-visualização do Avatar -->
+            <div class="flex flex-col items-center mb-4">
+                <div class="relative w-28 h-28 rounded-full bg-gray-700 overflow-hidden border-4 border-blue-500 flex items-center justify-center mb-3 shadow-lg">
+                    <img id="avatar-preview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-full h-full object-cover">
+                </div>
+                
+                <div class="flex gap-2 w-full justify-center">
+                    <button onclick="randomizeAvatar()" class="bg-gray-700 hover:bg-gray-600 text-xs px-3 py-2 rounded transition">🎲 Aleatório</button>
+                    <label class="bg-gray-700 hover:bg-gray-600 text-xs px-3 py-2 rounded transition cursor-pointer flex items-center">
+                        💻 Enviar Foto
+                        <input type="file" accept="image/*" class="hidden" onchange="handleProfilePhotoUpload(event)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Construtor de Avatar MEGA CUSTOMIZÁVEL -->
+            <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 mb-4 text-sm">
+                <p class="text-gray-400 mb-2 text-center text-[10px] uppercase tracking-wide font-bold">Personalize seu Avatar</p>
+                <div class="grid grid-cols-2 gap-2">
+                    
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Tom de Pele</label>
+                        <select id="av-skin" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="">Padrão</option>
+                            <option value="ffdbb4">Clara</option>
+                            <option value="edb98a">Parda Clara</option>
+                            <option value="d08b5b">Morena</option>
+                            <option value="ae5d29">Escura</option>
+                            <option value="614335">Muito Escura</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Roupa</label>
+                        <select id="av-clothes" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="hoodie">Moletom</option>
+                            <option value="shirtCrewNeck">Camiseta Básica</option>
+                            <option value="shirtVNeck">Camiseta Gola V</option>
+                            <option value="shirtScoopNeck">Camiseta Decotada</option>
+                            <option value="graphicShirt">Camisa Estampada</option>
+                            <option value="blazerAndShirt">Blazer com Camisa</option>
+                            <option value="blazerAndSweater">Blazer com Suéter</option>
+                            <option value="collarAndSweater">Suéter</option>
+                            <option value="overall">Macacão</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Corte / Chapéu</label>
+                        <select id="av-top" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="shortFlat">Curto Liso</option>
+                            <option value="shortCurly">Curto Cacheado</option>
+                            <option value="shortWaved">Curto Ondulado</option>
+                            <option value="longButNotTooLong">Longo Padrão</option>
+                            <option value="straight02">Longo Liso</option>
+                            <option value="bigHair">Volumoso</option>
+                            <option value="dreads">Dreads</option>
+                            <option value="bun">Coque</option>
+                            <option value="shavedSides">Raspado do Lado</option>
+                            <option value="hat">Chapéu</option>
+                            <option value="winterHat1">Gorro</option>
+                            <option value="hijab">Hijab</option>
+                            <option value="turban">Turbante</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Cor do Cabelo</label>
+                        <select id="av-hair-color" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="2c1b18">Preto</option>
+                            <option value="4a3123">Castanho Escuro</option>
+                            <option value="724133">Castanho Claro</option>
+                            <option value="d6b370">Loiro</option>
+                            <option value="a55728">Ruivo</option>
+                            <option value="7596ff">Azul</option>
+                            <option value="fc909f">Rosa</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Barba / Bigode</label>
+                        <select id="av-facial-hair" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="">Nenhum</option>
+                            <option value="beardLight">Barba Rala</option>
+                            <option value="beardMedium">Barba Média</option>
+                            <option value="beardMajestic">Barba Lenhador</option>
+                            <option value="moustacheFancy">Bigode Fino</option>
+                            <option value="moustacheMagnum">Bigode Grosso</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Cor da Barba</label>
+                        <select id="av-facial-hair-color" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="2c1b18">Preto</option>
+                            <option value="4a3123">Castanho Escuro</option>
+                            <option value="724133">Castanho Claro</option>
+                            <option value="d6b370">Loiro</option>
+                            <option value="a55728">Ruivo</option>
+                            <option value="e8e1e1">Grisalho / Branco</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Acessórios / Óculos</label>
+                        <select id="av-accessories" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="">Nenhum</option>
+                            <option value="prescription01">Óculos Grau 1</option>
+                            <option value="prescription02">Óculos Grau 2</option>
+                            <option value="round">Óculos Redondo</option>
+                            <option value="sunglasses">Óculos de Sol</option>
+                            <option value="wayfarers">Óculos Clássico</option>
+                            <option value="kurt">Óculos Estiloso</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Olhos</label>
+                        <select id="av-eyes" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="default">Padrão</option>
+                            <option value="happy">Feliz</option>
+                            <option value="surprised">Surpreso</option>
+                            <option value="wink">Piscando</option>
+                            <option value="squint">Semicerrado</option>
+                            <option value="cry">Chorando</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">Boca</label>
+                        <select id="av-mouth" onchange="updateCustomAvatar()" class="w-full bg-gray-700 border-none rounded p-1 text-white text-xs">
+                            <option value="smile">Sorriso</option>
+                            <option value="default">Séria</option>
+                            <option value="sad">Triste</option>
+                            <option value="tongue">Língua</option>
+                            <option value="twinkle">Estrela</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Dados de Entrada -->
+            <div class="mb-4">
+                <input type="text" id="username" placeholder="Como quer ser chamado?" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition" onkeypress="if(event.key === 'Enter') startApp()">
+            </div>
+            
+            <button onclick="startApp()" class="w-full bg-blue-600 hover:bg-blue-700 font-bold py-3 px-4 rounded-lg transition shadow-lg text-lg">Entrar no Chat</button>
+            <p id="login-status" class="text-sm text-center text-yellow-400 mt-4 hidden">Conectando...</p>
+        </div>
+    </div>
+
+    <!-- Modal de Desenho Completo (Lousa Mágica) -->
+    <div id="drawing-modal" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-2">
+        <div class="bg-gray-800 p-4 rounded-xl w-full max-w-[360px] flex flex-col items-center shadow-2xl">
+            <div class="flex justify-between items-center w-full mb-3">
+                <h3 class="font-bold text-lg text-blue-400">Estúdio Criativo</h3>
+                <button onclick="closeDrawing()" class="text-red-400 font-bold hover:text-red-300">X Fechar</button>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-2 mb-3 w-full bg-gray-700 p-2 rounded-lg">
+                <button id="tool-pen" onclick="setTool('pen')" class="tool-btn active" title="Pincel">✏️</button>
+                <button id="tool-eraser" onclick="setTool('eraser')" class="tool-btn" title="Borracha">🧹</button>
+                <button id="tool-fill" onclick="setTool('fill')" class="tool-btn" title="Balde de Tinta">🪣</button>
+                <button id="tool-text" onclick="setTool('text')" class="tool-btn" title="Adicionar Texto">🔤</button>
+                
+                <div class="w-[1px] bg-gray-500 mx-1"></div>
+                
+                <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)" class="w-10 h-10 rounded cursor-pointer border-0 bg-transparent">
+                
+                <div class="flex items-center gap-2 w-full mt-2">
+                    <span class="text-xs">Tamanho:</span>
+                    <input type="range" id="size-slider" min="1" max="40" value="4" onchange="setSize(this.value)" class="flex-1 cursor-pointer">
+                </div>
+            </div>
+
+            <canvas id="drawing-canvas" width="320" height="350" class="border border-gray-400 mb-4"></canvas>
+            
+            <div class="flex gap-2 w-full">
+                <button onclick="clearCanvas()" class="flex-1 bg-gray-600 hover:bg-gray-500 py-3 rounded-lg font-bold transition">Limpar Tudo</button>
+                <button onclick="sendDrawing()" class="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold transition">Enviar Arte ➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Principal -->
+    <div class="flex w-full h-full opacity-0 pointer-events-none transition-opacity duration-500" id="main-app">
+        <!-- Sidebar -->
+        <div class="w-80 bg-gray-800 border-r border-gray-700 flex flex-col h-full flex-shrink-0 max-md:w-20 overflow-hidden transition-all duration-300">
+            <div class="p-4 border-b border-gray-700 bg-gray-800 flex items-center gap-3">
+                <img id="my-avatar" src="" class="w-12 h-12 rounded-full border-2 border-blue-500 shrink-0 object-cover bg-white">
+                <div class="max-md:hidden">
+                    <h2 id="my-name" class="font-bold truncate w-40">Meu Nome</h2>
+                    <p class="text-xs text-green-400">● Online</p>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-800/50 max-md:hidden"><h3 class="text-xs text-gray-400 uppercase tracking-wider">Pessoas Próximas</h3></div>
+            <div id="users-list" class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1"></div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="flex-1 flex flex-col bg-gray-900 relative">
+            <div id="chat-header" class="h-16 border-b border-gray-700 bg-gray-800/80 hidden items-center px-6">
+                <img id="active-user-avatar" src="" class="w-10 h-10 rounded-full mr-3 object-cover bg-white">
+                <div>
+                    <h2 id="active-user-name" class="font-bold">Nome</h2>
+                    <p id="active-user-distance" class="text-xs text-blue-400">Distância</p>
+                </div>
+            </div>
+
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 z-10">
+                <p>Selecione alguém na lista para conversar</p>
+            </div>
+
+            <div id="messages-container" class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar hidden"></div>
+
+            <!-- Toolbar Input -->
+            <div id="chat-input-area" class="p-4 bg-gray-800 border-t border-gray-700 hidden relative">
+                
+                <div id="emoji-picker" class="absolute bottom-20 left-4 bg-gray-700 border border-gray-600 p-2 rounded-lg shadow-lg">
+                    <script>
+                        const emojis = ['😀','😂','🥰','😎','🤔','😭','😡','👍','🎉','❤️','🔥','👀','💯','🙌','✨'];
+                        document.write(emojis.map(e => `<button onclick="addEmoji('${e}')" class="text-xl hover:bg-gray-600 p-1 rounded transition">${e}</button>`).join(''));
+                    </script>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-4 text-gray-400 px-2">
+                        <button onclick="toggleEmoji()" class="hover:text-blue-400 transition transform hover:scale-110" title="Emoji">😊</button>
+                        <button onclick="document.getElementById('file-input').click()" class="hover:text-blue-400 transition transform hover:scale-110" title="Enviar Arquivo">📎</button>
+                        <input type="file" id="file-input" class="hidden" onchange="sendFile(this)">
+                        <button onclick="openDrawing()" class="hover:text-blue-400 transition transform hover:scale-110 text-xl" title="Desenhar">🎨</button>
+                        <button id="btn-audio" onclick="toggleAudioRecord()" class="hover:text-blue-400 transition transform hover:scale-110" title="Gravar Áudio">🎤</button>
+                        <span id="recording-timer" class="text-xs text-red-400 font-bold hidden">Gravando... (Clique p/ enviar)</span>
+                    </div>
+                    
+                    <div class="flex items-center bg-gray-700 rounded-full pr-2 pl-4 py-2 mt-1">
+                        <input type="text" id="message-input" placeholder="Digite uma mensagem..." class="flex-1 bg-transparent text-white focus:outline-none" onkeypress="if(event.key === 'Enter') sendTextMessage()">
+                        <button onclick="sendTextMessage()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 w-10 h-10 flex justify-center items-center font-bold">➤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
+        const APP_TOPIC = 'geochat_super_v4_avatars_pro_fixed'; 
+        const MAX_PAYLOAD = 100 * 1024;
+
+        let client;
+        let myProfile = { id: 'u_' + Math.random().toString(36).substr(2, 9), name: '', avatar: '', lat: null, lng: null, lastSeen: Date.now() };
+        let users = new Map();
+        let chats = {}; 
+        let activeChatId = null;
+        let currentSeed = 'Felix';
+
+        // --- SISTEMA DE AVATARES E PERFIL ---
+        
+        function randomizeAvatar() {
+            currentSeed = Math.random().toString(36).substring(7);
+            updateCustomAvatar(); 
+        }
+
+        // Função ATUALIZADA com correção de probabilidades (Óculos e Barba Rosa)
+        function updateCustomAvatar() {
+            const top = document.getElementById('av-top').value;
+            const clothes = document.getElementById('av-clothes').value;
+            const eyes = document.getElementById('av-eyes').value;
+            const mouth = document.getElementById('av-mouth').value;
+            
+            const skin = document.getElementById('av-skin').value;
+            const hairColor = document.getElementById('av-hair-color').value;
+            
+            const accessories = document.getElementById('av-accessories').value;
+            const facialHair = document.getElementById('av-facial-hair').value;
+            const facialHairColor = document.getElementById('av-facial-hair-color').value;
+            
+            // Monta a base da URL
+            let url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentSeed}&top=${top}&clothing=${clothes}&eyes=${eyes}&mouth=${mouth}`;
+            
+            if(skin) url += `&skinColor=${skin}`;
+            if(hairColor) url += `&hairColor=${hairColor}`;
+
+            // CORREÇÃO DOS ÓCULOS: Força probabilidade 100 se escolhido, 0 se "Nenhum"
+            if(accessories) {
+                url += `&accessories=${accessories}&accessoriesProbability=100`;
+            } else {
+                url += `&accessoriesProbability=0`;
+            }
+
+            // CORREÇÃO DA BARBA ROSA: Força probabilidade 100 se escolhido, 0 se "Nenhum"
+            if(facialHair) {
+                url += `&facialHair=${facialHair}&facialHairProbability=100`;
+                if(facialHairColor) url += `&facialHairColor=${facialHairColor}`;
+            } else {
+                url += `&facialHairProbability=0`;
+            }
+
+            document.getElementById('avatar-preview').src = url;
+        }
+
+        window.onload = function() {
+            updateCustomAvatar();
+        };
+
+        function handleProfilePhotoUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const cvs = document.createElement('canvas');
+                    cvs.width = 150; cvs.height = 150;
+                    const cctx = cvs.getContext('2d');
+                    
+                    const minSize = Math.min(img.width, img.height);
+                    const startX = (img.width - minSize) / 2;
+                    const startY = (img.height - minSize) / 2;
+                    
+                    cctx.drawImage(img, startX, startY, minSize, minSize, 0, 0, 150, 150);
+                    document.getElementById('avatar-preview').src = cvs.toDataURL('image/jpeg', 0.8);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- SISTEMA CORE (Conexão e Localização) ---
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+            const R = 6371; const dLat = (lat2-lat1)*(Math.PI/180); const dLon = (lon2-lon1)*(Math.PI/180);
+            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*(Math.PI/180))*Math.cos(lat2*(Math.PI/180))*Math.sin(dLon/2)*Math.sin(dLon/2);
+            return (R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))).toFixed(1);
+        }
+
+        function startApp() {
+            const name = document.getElementById('username').value.trim();
+            if (!name) return alert('Digite um nome!');
+            myProfile.name = name;
+            myProfile.avatar = document.getElementById('avatar-preview').src;
+            document.getElementById('login-status').classList.remove('hidden');
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => { myProfile.lat = pos.coords.latitude; myProfile.lng = pos.coords.longitude; connectMQTT(); },
+                    () => connectMQTT(), { timeout: 5000 }
+                );
+            } else connectMQTT();
+        }
+
+        function connectMQTT() {
+            client = mqtt.connect(BROKER_URL);
+            client.on('connect', () => {
+                client.subscribe(`${APP_TOPIC}/discovery`);
+                client.subscribe(`${APP_TOPIC}/msg/${myProfile.id}`);
+                
+                document.getElementById('login-screen').style.display = 'none';
+                const main = document.getElementById('main-app');
+                main.style.opacity = '1'; main.style.pointerEvents = 'auto';
+                
+                document.getElementById('my-avatar').src = myProfile.avatar;
+                document.getElementById('my-name').innerText = myProfile.name;
+
+                setInterval(() => {
+                    myProfile.lastSeen = Date.now();
+                    client.publish(`${APP_TOPIC}/discovery`, JSON.stringify(myProfile));
+                }, 3000);
+                setInterval(cleanupUsers, 5000);
+            });
+
+            client.on('message', (topic, message) => {
+                try {
+                    const data = JSON.parse(message.toString());
+                    if (topic.includes('discovery')) handlePresence(data);
+                    else handleIncomingMessage(data);
+                } catch(e){}
+            });
+        }
+
+        function handlePresence(u) {
+            if (u.id === myProfile.id) return;
+            u.distance = calculateDistance(myProfile.lat, myProfile.lng, u.lat, u.lng);
+            users.set(u.id, u);
+            updateUI();
+        }
+
+        function cleanupUsers() {
+            const now = Date.now(); let changed = false;
+            for (let [id, u] of users.entries()) {
+                if (now - u.lastSeen > 12000) { users.delete(id); changed = true; }
+            }
+            if (changed) updateUI();
+        }
+
+        function updateUI() {
+            const listEl = document.getElementById('users-list');
+            if (users.size === 0) { listEl.innerHTML = `<div class="text-center text-gray-500 mt-10 max-md:hidden">Ninguém próximo.</div>`; return; }
+            
+            const sorted = Array.from(users.values()).sort((a, b) => (a.distance||9999) - (b.distance||9999));
+            listEl.innerHTML = '';
+            
+            sorted.forEach(u => {
+                const unread = chats[u.id]?.filter(m => m.unread).length || 0;
+                const badge = unread ? `<span class="absolute top-0 right-0 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full md:relative md:w-auto md:h-auto md:px-2 md:py-0.5">${unread}</span>` : '';
+                const active = activeChatId === u.id ? 'bg-gray-700 border-blue-500' : 'border-transparent hover:bg-gray-700/50';
+                
+                listEl.innerHTML += `
+                    <div onclick="openChat('${u.id}')" class="flex items-center p-2 rounded-lg cursor-pointer transition border-l-2 relative ${active}">
+                        <img src="${u.avatar}" class="w-10 h-10 rounded-full shrink-0 object-cover bg-white">
+                        <div class="ml-3 flex-1 overflow-hidden max-md:hidden">
+                            <h4 class="font-semibold text-sm truncate">${u.name}</h4>
+                            <p class="text-xs text-gray-400">${u.distance ? u.distance+' km' : 'Local oculto'}</p>
+                        </div>
+                        ${badge}
+                    </div>`;
+            });
+        }
+
+        function openChat(id) {
+            activeChatId = id;
+            if (chats[id]) chats[id].forEach(m => m.unread = false);
+            else chats[id] = [];
+            
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('chat-header').style.display = 'flex';
+            document.getElementById('messages-container').classList.remove('hidden');
+            document.getElementById('chat-input-area').classList.remove('hidden');
+            
+            const u = users.get(id);
+            document.getElementById('active-user-avatar').src = u.avatar;
+            document.getElementById('active-user-name').innerText = u.name;
+            document.getElementById('active-user-distance').innerText = u.distance ? `📍 A ${u.distance} km` : '📍 Oculto';
+            
+            updateUI(); renderMessages();
+        }
+
+        // --- SISTEMA DE MENSAGENS ---
+        
+        function sendPayload(type, content, meta = {}) {
+            if (!activeChatId) return;
+            const msgObj = { senderId: myProfile.id, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), type, content, ...meta };
+            const payloadStr = JSON.stringify(msgObj);
+            
+            if(payloadStr.length > MAX_PAYLOAD) return alert('⚠️ Arquivo ou desenho muito grande! Tente um arquivo menor.');
+
+            client.publish(`${APP_TOPIC}/msg/${activeChatId}`, payloadStr);
+            if(!chats[activeChatId]) chats[activeChatId] = [];
+            chats[activeChatId].push({ ...msgObj, isMe: true });
+            renderMessages();
+        }
+
+        function sendTextMessage() {
+            const input = document.getElementById('message-input');
+            if (input.value.trim()) {
+                sendPayload('text', input.value.trim());
+                input.value = '';
+                document.getElementById('emoji-picker').style.display = 'none';
+            }
+        }
+
+        function handleIncomingMessage(msg) {
+            const sid = msg.senderId;
+            if (!chats[sid]) chats[sid] = [];
+            chats[sid].push({ ...msg, isMe: false, unread: activeChatId !== sid });
+            if (activeChatId === sid) renderMessages();
+            else updateUI();
+        }
+
+        function renderMessages() {
+            const c = document.getElementById('messages-container');
+            c.innerHTML = '';
+            (chats[activeChatId] || []).forEach(m => {
+                const align = m.isMe ? 'justify-end' : 'justify-start';
+                const bg = m.isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-100 rounded-bl-none';
+                
+                let html = '';
+                if(m.type === 'text') html = `<p class="text-sm break-words">${m.content}</p>`;
+                if(m.type === 'image') html = `<img src="${m.content}" class="rounded-lg max-w-full cursor-pointer border border-gray-500 shadow-md bg-white" onclick="window.open('${m.content}')">`;
+                if(m.type === 'file') html = `<a href="${m.content}" download="${m.fileName}" class="text-blue-300 underline text-sm">📎 Baixar: ${m.fileName}</a>`;
+                if(m.type === 'audio') html = `<audio controls src="${m.content}" class="h-10 max-w-[200px]"></audio>`;
+
+                c.innerHTML += `
+                    <div class="flex ${align} message-enter w-full">
+                        <div class="max-w-[85%] sm:max-w-[75%] px-4 py-2 rounded-2xl ${bg} shadow-md overflow-hidden">
+                            ${html}
+                            <p class="text-[10px] opacity-70 text-right mt-1">${m.time}</p>
+                        </div>
+                    </div>`;
+            });
+            c.scrollTop = c.scrollHeight;
+        }
+
+        // --- EMOJIS, ARQUIVOS, AUDIO ---
+        
+        function toggleEmoji() { const ep = document.getElementById('emoji-picker'); ep.style.display = ep.style.display === 'grid' ? 'none' : 'grid'; }
+        function addEmoji(e) { document.getElementById('message-input').value += e; }
+
+        function sendFile(input) {
+            const file = input.files[0];
+            if(!file) return;
+            if(file.size > 80000) return alert('O arquivo deve ter menos de 80KB nesta versão.'); 
+            const reader = new FileReader();
+            reader.onload = (e) => sendPayload(file.type.startsWith('image/') ? 'image' : 'file', e.target.result, { fileName: file.name });
+            reader.readAsDataURL(file);
+        }
+
+        let mediaRec; let audioChunks = []; let isRecording = false;
+        async function toggleAudioRecord() {
+            const btn = document.getElementById('btn-audio');
+            const lbl = document.getElementById('recording-timer');
+            if(!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRec = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRec.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRec.onstop = () => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(new Blob(audioChunks, { type: 'audio/webm' }));
+                        reader.onloadend = () => sendPayload('audio', reader.result);
+                    };
+                    mediaRec.start(); isRecording = true;
+                    btn.classList.add('recording'); lbl.classList.remove('hidden');
+                } catch(e) { alert('Permita o uso do microfone!'); }
+            } else {
+                mediaRec.stop(); mediaRec.stream.getTracks().forEach(t => t.stop());
+                isRecording = false; btn.classList.remove('recording'); lbl.classList.add('hidden');
+            }
+        }
+
+        // --- LOUSA MÁGICA ---
+        
+        const canvas = document.getElementById('drawing-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        let drawing = false; let currentTool = 'pen'; let strokeColor = '#000000'; let strokeWidth = 4;
+        clearCanvas();
+
+        function openDrawing() { document.getElementById('drawing-modal').style.display = 'flex'; }
+        function closeDrawing() { document.getElementById('drawing-modal').style.display = 'none'; }
+        function clearCanvas() { ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tool-' + tool).classList.add('active');
+            canvas.style.cursor = (tool === 'text') ? 'text' : 'crosshair';
+        }
+
+        function setColor(color) { strokeColor = color; }
+        function setSize(size) { strokeWidth = size; }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: Math.floor(clientX - rect.left), y: Math.floor(clientY - rect.top) };
+        }
+
+        function hexToRgba(hex) {
+            let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            return [r, g, b, 255];
+        }
+
+        function floodFill(startX, startY, fillColorHex) {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            const fill = hexToRgba(fillColorHex);
+            const targetIdx = (startY * canvas.width + startX) * 4;
+            const target = [data[targetIdx], data[targetIdx+1], data[targetIdx+2], 255];
+
+            if (Math.abs(target[0]-fill[0])<5 && Math.abs(target[1]-fill[1])<5 && Math.abs(target[2]-fill[2])<5) return;
+
+            const stack = [[startX, startY]];
+            while(stack.length > 0) {
+                const [x, y] = stack.pop();
+                const i = (y * canvas.width + x) * 4;
+                if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+                
+                if (Math.abs(data[i]-target[0])<20 && Math.abs(data[i+1]-target[1])<20 && Math.abs(data[i+2]-target[2])<20) {
+                    data[i] = fill[0]; data[i+1] = fill[1]; data[i+2] = fill[2]; data[i+3] = 255;
+                    stack.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function startDraw(e) { 
+            e.preventDefault(); 
+            const pos = getPos(e); 
+            
+            if (currentTool === 'text') {
+                const text = prompt("Digite o texto:");
+                if (text) {
+                    ctx.fillStyle = strokeColor;
+                    ctx.font = `bold ${strokeWidth * 4}px Arial`;
+                    ctx.fillText(text, pos.x, pos.y);
+                }
+                return;
+            }
+            if (currentTool === 'fill') { floodFill(pos.x, pos.y, strokeColor); return; }
+
+            drawing = true; ctx.beginPath(); ctx.moveTo(pos.x, pos.y); 
+        }
+
+        function draw(e) { 
+            if(!drawing || currentTool === 'text' || currentTool === 'fill') return; 
+            e.preventDefault(); 
+            const pos = getPos(e); 
+            ctx.lineTo(pos.x, pos.y); 
+            ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : strokeColor; 
+            ctx.lineWidth = currentTool === 'eraser' ? strokeWidth * 2 : strokeWidth; 
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.stroke(); 
+        }
+
+        function stopDraw() { drawing = false; }
+
+        canvas.addEventListener('mousedown', startDraw); canvas.addEventListener('mousemove', draw); 
+        canvas.addEventListener('mouseup', stopDraw); canvas.addEventListener('mouseout', stopDraw);
+        canvas.addEventListener('touchstart', startDraw, {passive: false}); 
+        canvas.addEventListener('touchmove', draw, {passive: false}); 
+        canvas.addEventListener('touchend', stopDraw);
+
+        function sendDrawing() {
+            const dataURL = canvas.toDataURL('image/jpeg', 0.6); 
+            sendPayload('image', dataURL);
+            closeDrawing();
+        }
+    </script>
+</body>
+</html>
