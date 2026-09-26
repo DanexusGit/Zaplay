@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GeoChat - Ultimate Edition</title>
+    <title>GeoChat</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -56,11 +56,12 @@
         @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
         
         audio { height: 35px; outline: none; }
-        video { max-height: 250px; outline: none; background: #000; }
+        audio::-webkit-media-controls-panel { background-color: rgba(255, 255, 255, 0.8); }
     </style>
 </head>
 <body class="bg-app-bg text-app-text h-screen flex overflow-hidden font-sans transition-colors duration-300">
 
+    <!-- Tela de Login & Customização -->
     <div id="login-screen" class="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-app-panel p-6 rounded-2xl w-full max-w-lg border border-app-border max-h-[95vh] overflow-y-auto no-scrollbar shadow-2xl">
             <h1 class="text-4xl font-black text-center text-app-accent mb-1 tracking-tighter" style="color: var(--app-accent)">GeoChat</h1>
@@ -80,52 +81,61 @@
             </div>
 
             <div class="bg-app-bg p-4 rounded-xl border border-app-border mb-6">
-                <p class="text-app-text-muted mb-3 text-center text-[10px] uppercase tracking-widest font-bold">Crie seu Avatar em Tempo Real</p>
+                <p class="text-app-text-muted mb-3 text-center text-[10px] uppercase tracking-widest font-bold">Crie seu Avatar</p>
                 <div class="grid grid-cols-2 gap-2 md:gap-3">
                     <select id="av-skin" onchange="updateCustomAvatar()" class="bg-app-input rounded p-1.5 text-xs text-app-text outline-none">
                         <option value="">Pele: Padrão</option><option value="ffdbb4">Pálida</option><option value="f8d25c">Amarela</option><option value="edb98a">Clara</option><option value="d08b5b">Parda</option><option value="ae5d29">Morena</option><option value="614335">Escura</option>
                     </select>
                     <select id="av-top" onchange="updateCustomAvatar()" class="bg-app-input rounded p-1.5 text-xs text-app-text outline-none">
-                        <option value="shortFlat">Cabelo: Curto</option><option value="shortCurly">Cacheado</option><option value="shortWaved">Ondulado Curto</option><option value="longButNotTooLong">Longo</option><option value="straight02">Liso</option><option value="dreads">Dreads</option><option value="bald">Careca</option>
+                        <option value="shortFlat">Cabelo: Curto</option><option value="shortCurly">Cacheado</option><option value="shortWaved">Ondulado Curto</option><option value="longButNotTooLong">Longo</option><option value="straight02">Liso</option><option value="dreads">Dreads</option><option value="dreads02">Dreads Longos</option><option value="bald">Careca</option><option value="hat">Chapéu</option><option value="turban">Turbante</option><option value="winterHat1">Gorro</option>
                     </select>
                     <select id="av-hair-color" onchange="updateCustomAvatar()" class="bg-app-input rounded p-1.5 text-xs text-app-text outline-none">
-                        <option value="2c1b18">Cor Cabelo: Preto</option><option value="4a3123">Castanho</option><option value="d6b370">Loiro</option><option value="a55728">Ruivo</option><option value="e8e1e1">Platinado</option>
+                        <option value="2c1b18">Cor Cabelo: Preto</option><option value="4a3123">Castanho</option><option value="d6b370">Loiro</option><option value="a55728">Ruivo</option><option value="fc909f">Rosa</option><option value="b58143">Loiro Escuro</option><option value="724133">Mogno</option><option value="e8e1e1">Platinado</option>
                     </select>
                     <select id="av-clothes" onchange="updateCustomAvatar()" class="bg-app-input rounded p-1.5 text-xs text-app-text outline-none">
-                        <option value="hoodie">Roupa: Moletom</option><option value="shirtCrewNeck">Camiseta</option><option value="blazerAndShirt">Blazer</option><option value="overall">Macacão</option>
+                        <option value="hoodie">Roupa: Moletom</option><option value="shirtCrewNeck">Camiseta Gola Redonda</option><option value="shirtVNeck">Camiseta Gola V</option><option value="graphicShirt">Camiseta Estampada</option><option value="blazerAndShirt">Blazer e Camisa</option><option value="blazerAndSweater">Blazer e Suéter</option><option value="overall">Macacão</option>
                     </select>
                     <select id="av-facial-hair" onchange="updateCustomAvatar()" class="bg-app-input rounded p-1.5 text-xs text-app-text outline-none">
-                        <option value="">Barba: Nenhuma</option><option value="beardMedium">Barba Média</option><option value="beardMajestic">Barba Cheia</option><option value="moustacheFancy">Bigode</option>
+                        <option value="">Barba: Nenhuma</option><option value="beardMedium">Barba Média</option><option value="beardLight">Barba Rala</option><option value="beardMajestic">Barba Lenhador</option><option value="moustacheFancy">Bigode Clássico</option><option value="moustacheMagnum">Bigode Cheio</option>
                     </select>
                     <select id="av-facial-hair-color" onchange="updateCustomAvatar()" class="bg-app-input rounded p-1.5 text-xs text-app-text outline-none">
                         <option value="2c1b18">Cor Barba: Preto</option><option value="4a3123">Castanho</option><option value="d6b370">Loiro</option><option value="a55728">Ruivo</option><option value="e8e1e1">Grisalho</option>
+                    </select>
+                    <select id="av-eyes" onchange="updateCustomAvatar()" class="bg-app-input rounded p-1.5 text-xs text-app-text outline-none col-span-2">
+                        <option value="">Óculos: Nenhum</option><option value="prescription01">De Grau Fino</option><option value="prescription02">De Grau Grosso</option><option value="round">Redondos</option><option value="sunglasses">Escuros</option><option value="wayfarers">Wayfarer</option>
                     </select>
                 </div>
             </div>
 
             <div class="space-y-3 mb-6">
-                <input type="text" id="username" placeholder="Seu apelido..." class="w-full bg-app-input border border-app-border rounded-xl px-4 py-3 text-app-text focus:outline-none font-bold" onkeypress="if(event.key === 'Enter') startApp()">
-                <input type="text" id="userstatus" placeholder="Seu recado (ex: Ocupado, Feliz...)" class="w-full bg-app-input border border-app-border rounded-xl px-4 py-2 text-app-text text-sm focus:outline-none" onkeypress="if(event.key === 'Enter') startApp()">
+                <input type="text" id="username" placeholder="Seu apelido..." class="w-full bg-app-input border border-app-border rounded-xl px-4 py-3 text-app-text focus:outline-none font-bold" style="border-color: var(--app-border); outline-color: var(--app-accent);" onkeypress="if(event.key === 'Enter') startApp()">
+                <input type="text" id="userstatus" placeholder="Seu recado (ex: Ocupado, Feliz...)" class="w-full bg-app-input border border-app-border rounded-xl px-4 py-2 text-app-text text-sm focus:outline-none" style="border-color: var(--app-border); outline-color: var(--app-accent);" onkeypress="if(event.key === 'Enter') startApp()">
             </div>
             
-            <button onclick="startApp()" class="w-full text-white font-black py-4 px-4 rounded-xl transition-all shadow-lg text-lg uppercase tracking-wide hover:brightness-110" style="background-color: var(--app-accent)">Iniciar Conexão</button>
+            <button onclick="startApp()" class="w-full text-white font-black py-4 px-4 rounded-xl transition-all hover:scale-[1.02] shadow-lg text-lg uppercase tracking-wide hover:brightness-110" style="background-color: var(--app-accent)">Iniciar Conexão</button>
+            <p id="login-status" class="text-sm text-center mt-4 font-bold hidden animate-pulse" style="color: var(--app-accent)">Sincronizando...</p>
         </div>
     </div>
 
+    <!-- App Principal -->
     <div class="w-full h-full opacity-0 pointer-events-none transition-opacity duration-500 flex" id="main-app">
+        
         <!-- Sidebar -->
         <div id="app-sidebar" class="flex flex-col w-full md:w-[380px] h-full bg-app-panel border-r border-app-border flex-shrink-0 z-20">
             <div class="p-4 border-b border-app-border flex items-center justify-between gap-3 shadow-sm bg-app-panel">
-                <div class="flex items-center gap-3 cursor-pointer hover:bg-app-input/50 p-1.5 rounded-lg transition" onclick="openSettingsModal()">
-                    <img id="my-avatar" src="" class="w-12 h-12 rounded-full border-2 object-cover bg-app-input" style="border-color: var(--app-accent)">
+                <div class="flex items-center gap-3 cursor-pointer hover:bg-app-input/50 p-1.5 -ml-1.5 rounded-lg transition" onclick="openSettingsModal()" title="Abrir Configurações">
+                    <div class="relative">
+                        <img id="my-avatar" src="" class="w-12 h-12 rounded-full border-2 object-cover bg-app-input" style="border-color: var(--app-accent)">
+                        <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-app-panel rounded-full"></div>
+                    </div>
                     <div class="flex flex-col">
                         <h2 id="my-name" class="font-bold text-app-text leading-tight truncate w-32">Nome</h2>
                         <span id="my-status" class="text-xs text-app-text-muted truncate w-32">Status</span>
                     </div>
                 </div>
                 <div class="flex gap-2 shrink-0">
-                    <button onclick="openBrowserModal()" class="w-10 h-10 rounded-full bg-app-input hover:brightness-110 transition flex items-center justify-center text-lg" title="Navegador">🌐</button>
-                    <button onclick="openGroupModal()" class="w-10 h-10 rounded-full bg-app-input hover:brightness-110 transition flex items-center justify-center text-lg" title="Novo Grupo">➕</button>
+                    <button onclick="openBrowserModal()" class="w-10 h-10 rounded-full bg-app-input hover:brightness-110 transition flex items-center justify-center text-lg" style="color: var(--app-accent)" title="Navegador">🌐</button>
+                    <button onclick="openGroupModal()" class="w-10 h-10 rounded-full bg-app-input hover:brightness-110 transition flex items-center justify-center text-lg" style="color: var(--app-accent)" title="Novo Grupo">➕</button>
                 </div>
             </div>
 
@@ -139,7 +149,7 @@
         <div id="app-chat-area" class="hidden md:flex flex-col flex-1 bg-app-bg relative h-full">
             <div id="chat-header" class="h-16 border-b border-app-border bg-app-panel hidden items-center px-4 shadow-sm shrink-0 z-10 justify-between">
                 <div class="flex items-center gap-3">
-                    <button onclick="backToSidebar()" class="md:hidden font-bold text-2xl p-1" style="color: var(--app-accent)">←</button>
+                    <button onclick="backToSidebar()" class="md:hidden font-bold text-2xl hover:scale-110 p-1" style="color: var(--app-accent)">←</button>
                     <img id="active-user-avatar" src="" class="w-10 h-10 rounded-full object-cover bg-white">
                     <div>
                         <h2 id="active-user-name" class="font-bold text-app-text leading-tight">Nome</h2>
@@ -149,8 +159,9 @@
             </div>
 
             <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-app-text-muted z-10 p-4 text-center bg-app-bg">
+                <div class="w-48 h-48 mb-6 opacity-50 bg-[url('https://api.dicebear.com/7.x/shapes/svg?seed=chat')] bg-no-repeat bg-center"></div>
                 <h3 class="text-2xl font-bold mb-2">Bem-vindo ao GeoChat</h3>
-                <p class="text-sm max-w-md">Selecione uma conversa ou crie um grupo.</p>
+                <p class="text-sm max-w-md">Selecione uma conversa na lateral ou crie um novo grupo para começar.</p>
             </div>
 
             <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 no-scrollbar hidden bg-app-bg pb-4"></div>
@@ -162,663 +173,483 @@
 
             <div id="chat-input-area" class="p-3 md:p-4 bg-app-panel border-t border-app-border hidden shrink-0">
                 <div class="flex items-center gap-1 bg-app-input rounded-2xl px-2 py-1 md:py-2">
+                    <button onclick="document.getElementById('file-input').click()" class="p-2 text-app-text-muted hover:text-white transition rounded-full hover:bg-app-panel" title="Anexar Arquivo">📎</button>
+                    <input type="file" id="file-input" class="hidden" onchange="sendFile(this)">
                     
-                    <button onclick="document.getElementById('file-input').click()" class="p-2 text-app-text-muted hover:text-white transition rounded-full hover:bg-app-panel" title="Anexar Arquivos">📎</button>
-                    <input type="file" id="file-input" class="hidden" multiple onchange="sendFile(this)">
-                    
-                    <button onclick="sendFolderPicker()" class="p-2 text-app-text-muted hover:text-white transition rounded-full hover:bg-app-panel" title="Enviar Apenas a Pasta">📁</button>
-
                     <button onclick="openDrawingModal()" class="p-2 text-app-text-muted hover:text-white transition rounded-full hover:bg-app-panel" title="Desenhar">🎨</button>
                     <button onclick="sendLocation()" class="p-2 text-app-text-muted hover:text-white transition rounded-full hover:bg-app-panel" title="Enviar Localização">📍</button>
                     
                     <input type="text" id="message-input" placeholder="Digite uma mensagem..." class="flex-1 bg-transparent text-app-text focus:outline-none text-sm md:text-base px-2 h-10 w-full" onkeypress="handleTyping(); if(event.key === 'Enter') sendTextMessage()">
                     
-                    <button onclick="sendTextMessage()" class="text-white rounded-full w-10 h-10 flex justify-center items-center font-bold transition shrink-0 shadow-md ml-1" style="background-color: var(--app-accent)">➤</button>
+                    <button id="record-btn" onclick="toggleRecording()" class="p-2 text-app-text-muted hover:text-white transition rounded-full hover:bg-app-panel" title="Gravar Áudio">🎤</button>
+                    <button onclick="sendTextMessage()" class="text-white rounded-full w-10 h-10 flex justify-center items-center font-bold transition shrink-0 shadow-md hover:brightness-110 ml-1" style="background-color: var(--app-accent)">➤</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="document-viewer-modal" class="fixed inset-0 bg-black/90 z-[120] flex flex-col p-2 md:p-6 backdrop-blur-md" style="display: none;">
-        <div class="bg-app-panel rounded-2xl w-full max-w-5xl mx-auto h-full flex flex-col shadow-2xl border border-app-border overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-3 bg-app-bg border-b border-app-border">
-                <div class="flex items-center gap-3">
-                    <span id="doc-viewer-icon" class="text-2xl">📄</span>
-                    <div>
-                        <h3 id="doc-viewer-title" class="font-bold text-app-text text-base truncate max-w-md">Nome do Documento</h3>
-                        <p id="doc-viewer-subtitle" class="text-xs text-app-text-muted">Visualizador GeoChat</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a id="doc-viewer-download" href="#" download class="px-3 py-1.5 bg-app-input hover:bg-app-border rounded-lg text-xs font-bold text-app-text flex items-center gap-1 transition">📥 Baixar</a>
-                    <button onclick="closeDocumentViewer()" class="px-3 py-1.5 bg-red-500/20 text-red-500 rounded-lg text-xs font-bold hover:bg-red-500/30 transition">✕ Fechar</button>
-                </div>
-            </div>
-            <div class="flex-1 bg-app-bg relative flex items-center justify-center overflow-auto p-4" id="doc-viewer-content-container"></div>
-        </div>
-    </div>
-
-    <div id="folder-viewer-modal" class="fixed inset-0 bg-black/90 z-[120] flex flex-col p-2 md:p-6 backdrop-blur-md" style="display: none;">
-        <div class="bg-app-panel rounded-2xl w-full max-w-4xl mx-auto h-full max-h-[85vh] flex flex-col shadow-2xl border border-app-border overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-3 bg-app-bg border-b border-app-border">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">📁</span>
-                    <div>
-                        <h3 id="folder-viewer-title" class="font-bold text-app-text text-base truncate max-w-md">Pasta</h3>
-                        <p id="folder-viewer-subtitle" class="text-xs text-app-text-muted">0 arquivos</p>
-                    </div>
-                </div>
-                <button onclick="closeFolderViewer()" class="px-3 py-1.5 bg-red-500/20 text-red-500 rounded-lg text-xs font-bold hover:bg-red-500/30 transition">✕ Fechar</button>
-            </div>
-            <div class="flex-1 bg-app-bg p-4 overflow-y-auto space-y-2" id="folder-files-list"></div>
-        </div>
-    </div>
-
+    <!-- Modais -->
+    
+    <!-- Quadro de Desenho -->
     <div id="drawing-modal" class="fixed inset-0 bg-black/90 z-50 flex-col items-center justify-center p-4 backdrop-blur-sm" style="display: none;">
-        <div class="bg-app-panel rounded-xl w-full max-w-3xl mx-auto flex flex-col shadow-2xl border border-app-border overflow-hidden h-full max-h-[85vh]">
+        <div class="bg-app-panel rounded-xl w-full max-w-2xl mx-auto flex flex-col shadow-2xl border border-app-border overflow-hidden h-full max-h-[80vh]">
             <div class="flex items-center justify-between p-3 bg-app-bg border-b border-app-border">
                 <h3 class="font-bold text-app-text">Quadro de Desenho</h3>
-                <div class="flex gap-2">
-                    <button onclick="undoDraw()" class="px-3 py-1 bg-app-input rounded-lg hover:bg-app-border text-sm" title="Desfazer">↩️</button>
-                    <button onclick="toggleEraser()" id="btn-eraser" class="px-3 py-1 bg-app-input rounded-lg hover:bg-app-border text-sm" title="Borracha">🧹</button>
-                    <button onclick="closeDrawingModal()" class="text-[#ef4444] font-bold px-3 py-1 bg-app-input rounded-lg hover:bg-red-900/30">✕</button>
-                </div>
+                <button onclick="closeDrawingModal()" class="text-[#ef4444] font-bold px-3 py-1 bg-app-input rounded-lg hover:bg-red-900/30">✕</button>
             </div>
-            <div class="flex-1 bg-white relative overflow-hidden">
+            <div class="flex-1 bg-white relative">
                 <canvas id="draw-canvas" class="absolute inset-0 w-full h-full cursor-crosshair touch-none"></canvas>
             </div>
-            <div class="p-3 bg-app-bg border-t border-app-border flex gap-3 justify-between items-center overflow-x-auto no-scrollbar">
-                <div class="flex items-center gap-3 shrink-0">
-                    <input type="color" id="draw-color" value="#000000" class="w-10 h-10 rounded cursor-pointer border-0 bg-transparent" onchange="disableEraser()">
-                    <input type="range" id="draw-size" min="1" max="30" value="4" class="w-24 accent-blue-500">
+            <div class="p-3 bg-app-bg border-t border-app-border flex gap-3 justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <input type="color" id="draw-color" value="#3b82f6" class="w-10 h-10 rounded cursor-pointer border-0 bg-transparent">
+                    <input type="range" id="draw-size" min="1" max="20" value="3" class="w-24 accent-blue-500">
                 </div>
-                <div class="flex gap-2 shrink-0">
-                    <button onclick="clearCanvas()" class="px-4 py-2 bg-app-input text-app-text hover:bg-app-border rounded-lg text-sm font-bold transition">Limpar Tudo</button>
+                <div class="flex gap-2">
+                    <button onclick="clearCanvas()" class="px-4 py-2 bg-app-input text-app-text hover:bg-app-border rounded-lg text-sm font-bold transition">Limpar</button>
                     <button onclick="sendDrawing()" class="px-5 py-2 text-white font-bold rounded-lg transition hover:brightness-110" style="background-color: var(--app-accent)">Enviar</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Configurações -->
     <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm" style="display: none;">
-        <div class="bg-app-panel p-6 rounded-2xl w-full max-w-md border border-app-border">
-            <h3 class="text-xl font-bold text-app-text mb-4 border-b border-app-border pb-2">Configurações</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs text-app-text-muted block mb-1">Tema</label>
-                    <div class="flex gap-2"><button onclick="changeAppTheme('default')" class="bg-[#0f172a] text-white p-2 rounded">Escuro</button><button onclick="changeAppTheme('dracula')" class="bg-[#282a36] text-[#f8f8f2] p-2 rounded">Dracula</button><button onclick="changeAppTheme('light')" class="bg-[#f3f4f6] text-black p-2 rounded">Claro</button></div>
-                </div>
-                <button onclick="saveSettings()" class="w-full text-white font-bold py-3 mt-4 rounded-xl" style="background-color: var(--app-accent)">Fechar</button>
+        <div class="bg-app-panel p-6 rounded-2xl w-full max-w-md border border-app-border shadow-2xl">
+            <div class="flex justify-between items-center mb-6 border-b border-app-border pb-3">
+                <h3 class="text-xl font-bold text-app-text">Configurações</h3>
+                <button onclick="closeSettingsModal()" class="text-app-text-muted hover:text-red-500 font-bold text-xl">✕</button>
             </div>
-        </div>
-    </div>
-    
-    <div id="browser-modal" class="fixed inset-0 bg-black/90 z-50 flex flex-col p-2 md:p-6" style="display: none;">
-        <div class="bg-app-panel rounded-xl w-full h-full flex flex-col shadow-2xl border border-app-border">
-            <div class="flex p-2 bg-app-bg border-b gap-2"><input type="text" id="browser-url-input" class="flex-1 bg-app-input px-3 py-1 text-sm text-app-text rounded" placeholder="URL..."><button onclick="document.getElementById('browser-frame').src = document.getElementById('browser-url-input').value" class="px-4 bg-app-accent rounded text-white text-sm">Ir</button><button onclick="document.getElementById('browser-modal').style.display='none'" class="px-3 bg-red-500/20 text-red-500 rounded">✕</button></div>
-            <iframe id="browser-frame" src="https://www.bing.com/" class="flex-1 w-full bg-white"></iframe>
+            <div class="space-y-5">
+                <div>
+                    <label class="text-xs text-app-text-muted uppercase font-bold mb-2 block">Tema do App</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="changeAppTheme('default')" class="bg-[#0f172a] text-white border border-[#334155] rounded p-2 text-xs hover:border-blue-500">Escuro</button>
+                        <button onclick="changeAppTheme('dracula')" class="bg-[#282a36] text-[#f8f8f2] border border-[#6272a4] rounded p-2 text-xs hover:border-purple-500">Dracula</button>
+                        <button onclick="changeAppTheme('light')" class="bg-[#f3f4f6] text-black border border-[#d1d5db] rounded p-2 text-xs hover:border-green-500">Claro</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-app-text-muted uppercase font-bold mb-2 block">Cor de Destaque</label>
+                    <div class="flex gap-2 justify-between">
+                        <button onclick="changeAccentColor('#3b82f6')" class="w-8 h-8 rounded-full bg-[#3b82f6] border-2 border-transparent focus:border-white"></button>
+                        <button onclick="changeAccentColor('#10b981')" class="w-8 h-8 rounded-full bg-[#10b981] border-2 border-transparent focus:border-white"></button>
+                        <button onclick="changeAccentColor('#8b5cf6')" class="w-8 h-8 rounded-full bg-[#8b5cf6] border-2 border-transparent focus:border-white"></button>
+                        <button onclick="changeAccentColor('#ef4444')" class="w-8 h-8 rounded-full bg-[#ef4444] border-2 border-transparent focus:border-white"></button>
+                        <button onclick="changeAccentColor('#f59e0b')" class="w-8 h-8 rounded-full bg-[#f59e0b] border-2 border-transparent focus:border-white"></button>
+                        <button onclick="changeAccentColor('#ec4899')" class="w-8 h-8 rounded-full bg-[#ec4899] border-2 border-transparent focus:border-white"></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-app-text-muted uppercase font-bold mb-2 block">Atualizar Perfil</label>
+                    <input type="text" id="settings-name" placeholder="Novo nome..." class="w-full bg-app-input border border-app-border rounded-lg px-3 py-2 text-app-text mb-2 text-sm focus:outline-none">
+                    <input type="text" id="settings-status" placeholder="Novo status..." class="w-full bg-app-input border border-app-border rounded-lg px-3 py-2 text-app-text text-sm focus:outline-none">
+                </div>
+            </div>
+            <button onclick="saveSettings()" class="w-full text-white font-bold py-3 mt-6 rounded-xl transition hover:brightness-110" style="background-color: var(--app-accent)">Salvar e Fechar</button>
         </div>
     </div>
 
+    <!-- Navegador Bing -->
+    <div id="browser-modal" class="fixed inset-0 bg-black/90 z-50 flex flex-col p-2 md:p-6 backdrop-blur-sm" style="display: none;">
+        <div class="bg-app-panel rounded-xl w-full h-full flex flex-col shadow-2xl border border-app-border overflow-hidden">
+            <div class="flex items-center justify-between p-2 bg-app-bg border-b border-app-border gap-2">
+                <div class="flex-1 flex items-center bg-app-input rounded-lg px-3 py-1.5 border border-app-border">
+                    <span class="text-xs mr-2 opacity-50">URL:</span>
+                    <input type="text" id="browser-url-input" placeholder="Pesquisar ou digitar URL..." class="w-full bg-transparent text-sm text-app-text focus:outline-none" onkeypress="if(event.key === 'Enter') navigateBrowser()">
+                </div>
+                <button onclick="navigateBrowser()" class="px-4 py-1.5 rounded-lg text-white font-bold text-sm" style="background-color: var(--app-accent)">Ir</button>
+                <button onclick="closeBrowserModal()" class="text-[#ef4444] font-bold px-3 py-1.5 bg-app-input rounded-lg hover:bg-red-900/30">✕</button>
+            </div>
+            <div class="flex-1 relative bg-white">
+                <iframe id="browser-frame" src="https://www.bing.com/" class="w-full h-full border-0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grupos -->
     <div id="group-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" style="display: none;">
         <div class="bg-app-panel p-6 rounded-2xl w-full max-w-md border border-app-border">
-            <h3 class="text-xl font-bold mb-4 text-app-text">Novo Grupo</h3>
-            <input type="text" id="group-name-input" placeholder="Nome do grupo..." class="w-full bg-app-input rounded-xl px-4 py-3 mb-4 text-app-text outline-none border border-app-border">
-            <div id="group-members-container" class="max-h-48 overflow-y-auto mb-4 bg-app-bg p-2 rounded-xl border border-app-border space-y-1">
-                <p class="text-xs text-app-text-muted text-center py-2">Usuários online disponíveis serão adicionados automaticamente.</p>
-            </div>
+            <h3 class="text-xl font-bold text-app-text mb-4">Criar Novo Grupo</h3>
+            <input type="text" id="group-name-input" placeholder="Nome do Grupo" class="w-full bg-app-input border border-app-border rounded-lg px-4 py-3 text-app-text focus:outline-none mb-4">
+            <div id="group-members-list" class="max-h-48 overflow-y-auto space-y-1 mb-4 bg-app-bg p-2 rounded-lg border border-app-border"></div>
             <div class="flex gap-2">
-                <button onclick="document.getElementById('group-modal').style.display='none'" class="flex-1 bg-app-input py-3 rounded-xl text-app-text font-bold">Cancelar</button>
-                <button onclick="createGroup()" class="flex-1 text-white py-3 rounded-xl font-bold" style="background-color: var(--app-accent)">Criar Grupo</button>
+                <button onclick="document.getElementById('group-modal').style.display='none'" class="flex-1 bg-app-input py-2.5 rounded-lg text-app-text">Cancelar</button>
+                <button onclick="createGroup()" class="flex-1 text-white font-bold py-2.5 rounded-lg" style="background-color: var(--app-accent)">Criar</button>
             </div>
         </div>
     </div>
 
     <script>
         const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
-        const APP_TOPIC = 'geochat_super_v12_pro_fix_stable'; 
-        const MAX_PAYLOAD = 20 * 1024 * 1024; 
+        const APP_TOPIC = 'geochat_super_v10_pro'; 
+        const MAX_PAYLOAD = 10 * 1024 * 1024; // 10MB para testes com imagens mais pesadas
 
         let client;
         let myProfile = { id: 'u_' + Math.random().toString(36).substr(2, 9), name: '', status: '', avatar: '', lastSeen: Date.now() };
-        let users = new Map(); let groups = {}; let chats = {}; 
-        let activeChatId = null; let currentSeed = Math.random().toString(36).substring(7);
-        
-        window.messageStore = {};
+        let users = new Map(); 
+        let groups = {}; 
+        let chats = {}; 
+        let activeChatId = null; 
+        let currentSeed = Math.random().toString(36).substring(7);
+        let typingTimeout;
 
-        // --- AVATAR CUSTOMIZATION ---
-        function randomizeAvatar() { 
-            currentSeed = Math.random().toString(36).substring(7); 
-            updateCustomAvatar(); 
+        // Váriaveis Persistentes de Áudio e Localização
+        let globalAudioStream = null;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        
+        let globalLocationWatcher = null;
+        let lastKnownLocation = null;
+
+        // --- SISTEMA DE DESENHO ---
+        const canvas = document.getElementById('draw-canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+
+        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+        function startDrawing(e) { isDrawing = true; draw(e); }
+        function stopDrawing() { isDrawing = false; ctx.beginPath(); }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            
+            ctx.lineWidth = document.getElementById('draw-size').value;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = document.getElementById('draw-color').value;
+            
+            ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y);
         }
 
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', e => { e.preventDefault(); draw(e); });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function openDrawingModal() { document.getElementById('drawing-modal').style.display = 'flex'; setTimeout(resizeCanvas, 100); }
+        function closeDrawingModal() { document.getElementById('drawing-modal').style.display = 'none'; }
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        
+        function sendDrawing() {
+            const data = canvas.toDataURL('image/png');
+            sendPayload('image', data);
+            closeDrawingModal();
+            clearCanvas();
+        }
+        // --------------------------
+
+        // ÁUDIO PERSISTENTE
+        async function toggleRecording() {
+            const btn = document.getElementById('record-btn');
+            const input = document.getElementById('message-input');
+            
+            if (!isRecording) {
+                try {
+                    // Mantém a permissão salva na aba para não perguntar de novo
+                    if (!globalAudioStream) {
+                        input.placeholder = "Solicitando microfone...";
+                        globalAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                    
+                    mediaRecorder = new MediaRecorder(globalAudioStream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            if (e.target.result.length > MAX_PAYLOAD) alert("Áudio muito longo! Gravação excedeu 10MB.");
+                            else sendPayload('audio', e.target.result);
+                        };
+                        reader.readAsDataURL(audioBlob);
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.classList.add('text-red-500', 'animate-pulse');
+                    input.placeholder = "Gravando áudio... (Clique no mic para parar)";
+                } catch (err) {
+                    alert('Erro ao acessar o microfone. Verifique as permissões.');
+                    input.placeholder = "Digite uma mensagem...";
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.classList.remove('text-red-500', 'animate-pulse');
+                input.placeholder = "Digite uma mensagem...";
+            }
+        }
+
+        // LOCALIZAÇÃO PERSISTENTE
+        function sendLocation() {
+            if (!navigator.geolocation) return alert('Geolocalização não suportada.');
+            const input = document.getElementById('message-input');
+            const originalPh = input.placeholder;
+
+            // Se já temos a localização recente, envia imediatamente sem carregar
+            if (lastKnownLocation) {
+                sendPayload('location', lastKnownLocation);
+                return;
+            }
+
+            input.placeholder = "Buscando localização pela primeira vez...";
+            
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    lastKnownLocation = `${pos.coords.latitude},${pos.coords.longitude}`;
+                    sendPayload('location', lastKnownLocation);
+                    input.placeholder = originalPh;
+                    
+                    // Inicia o observador silencioso para envios futuros instantâneos
+                    if (!globalLocationWatcher) {
+                        globalLocationWatcher = navigator.geolocation.watchPosition(p => {
+                            lastKnownLocation = `${p.coords.latitude},${p.coords.longitude}`;
+                        }, null, { enableHighAccuracy: true });
+                    }
+                },
+                (err) => {
+                    alert('Erro ao obter localização. Permita o acesso no navegador.');
+                    input.placeholder = originalPh;
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // AVATAR E CONFIGS
+        function openSettingsModal() { 
+            document.getElementById('settings-name').value = myProfile.name;
+            document.getElementById('settings-status').value = myProfile.status;
+            document.getElementById('settings-modal').style.display = 'flex'; 
+        }
+        function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
+        
+        function changeAppTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
+        function changeAccentColor(color) { document.documentElement.style.setProperty('--app-accent', color); }
+        
+        function saveSettings() {
+            const n = document.getElementById('settings-name').value.trim();
+            const s = document.getElementById('settings-status').value.trim();
+            if(n) {
+                myProfile.name = n;
+                myProfile.status = s || myProfile.status;
+                document.getElementById('my-name').innerText = myProfile.name;
+                document.getElementById('my-status').innerText = myProfile.status;
+                client.publish(`${APP_TOPIC}/discovery`, JSON.stringify(myProfile));
+            }
+            closeSettingsModal();
+        }
+
+        function randomizeAvatar() { currentSeed = Math.random().toString(36).substring(7); updateCustomAvatar(); }
+        
         function updateCustomAvatar() {
             const skin = document.getElementById('av-skin').value;
             const top = document.getElementById('av-top').value;
-            const hairColor = document.getElementById('av-hair-color').value;
+            const hair = document.getElementById('av-hair-color').value;
             const clothes = document.getElementById('av-clothes').value;
-            const facialHair = document.getElementById('av-facial-hair').value;
-            const facialHairColor = document.getElementById('av-facial-hair-color').value;
+            const beard = document.getElementById('av-facial-hair').value;
+            const beardColor = document.getElementById('av-facial-hair-color').value;
+            const eyes = document.getElementById('av-eyes').value;
 
-            let url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentSeed}&backgroundColor=transparent`;
+            let url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentSeed}&top=${top}&clothing=${clothes}&backgroundColor=transparent`;
             if(skin) url += `&skinColor=${skin}`;
-            if(top) url += `&top=${top}`;
-            if(hairColor) url += `&hairColor=${hairColor}`;
-            if(clothes) url += `&clothes=${clothes}`;
-            if(facialHair) url += `&facialHair=${facialHair}`;
-            if(facialHairColor) url += `&facialHairColor=${facialHairColor}`;
+            if(hair) url += `&hairColor=${hair}`;
+            
+            if(beard) url += `&facialHair=${beard}&facialHairProbability=100&facialHairColor=${beardColor}`;
+            else url += `&facialHairProbability=0`;
+
+            if(eyes) url += `&accessories=${eyes}&accessoriesProbability=100`;
+            else url += `&accessoriesProbability=0`;
 
             document.getElementById('avatar-preview').src = url;
-            myProfile.avatar = url;
+        }
+        window.onload = updateCustomAvatar;
+
+        function handleProfilePhotoUpload(e) {
+            const file = e.target.files[0]; if(!file) return;
+            const r = new FileReader(); r.onload = ev => document.getElementById('avatar-preview').src = ev.target.result;
+            r.readAsDataURL(file);
         }
 
-        function handleProfilePhotoUpload(event) {
-            const file = event.target.files[0];
-            if(file) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    document.getElementById('avatar-preview').src = e.target.result;
-                    myProfile.avatar = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        window.onload = () => { updateCustomAvatar(); };
-
-        // --- QUADRO DE DESENHO ---
-        const canvas = document.getElementById('draw-canvas');
-        const ctx = canvas.getContext('2d');
-        let isDrawing = false, lastX = 0, lastY = 0;
-        let canvasHistory = [];
-        let isEraserMode = false;
-
-        function resizeCanvas() { 
-            canvas.width = canvas.parentElement.clientWidth; 
-            canvas.height = canvas.parentElement.clientHeight;
-            ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        function saveCanvasState() {
-            if(canvasHistory.length > 15) canvasHistory.shift();
-            canvasHistory.push(canvas.toDataURL());
-        }
-
-        function undoDraw() {
-            if(canvasHistory.length > 0) {
-                let img = new Image();
-                img.src = canvasHistory.pop();
-                img.onload = () => { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); }
-            } else { clearCanvas(); }
-        }
-
-        function toggleEraser() {
-            isEraserMode = !isEraserMode;
-            document.getElementById('btn-eraser').classList.toggle('bg-blue-500');
-            document.getElementById('btn-eraser').classList.toggle('text-white');
-        }
-        function disableEraser() { isEraserMode = false; document.getElementById('btn-eraser').classList.remove('bg-blue-500', 'text-white'); }
-
-        function getPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            return { x: clientX - rect.left, y: clientY - rect.top };
-        }
-
-        function startDrawing(e) { 
-            e.preventDefault();
-            isDrawing = true; 
-            saveCanvasState();
-            const pos = getPos(e);
-            lastX = pos.x; lastY = pos.y;
-            draw(e);
-        }
-
-        function draw(e) {
-            if (!isDrawing) return;
-            e.preventDefault();
-            const pos = getPos(e);
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.lineWidth = document.getElementById('draw-size').value;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.strokeStyle = isEraserMode ? "white" : document.getElementById('draw-color').value;
-            ctx.stroke();
-            lastX = pos.x; lastY = pos.y;
-        }
-
-        function stopDrawing() { isDrawing = false; }
-
-        canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing); canvas.addEventListener('mouseout', stopDrawing);
-        canvas.addEventListener('touchstart', startDrawing, {passive: false}); 
-        canvas.addEventListener('touchmove', draw, {passive: false}); 
-        canvas.addEventListener('touchend', stopDrawing);
-
-        function openDrawingModal() { document.getElementById('drawing-modal').style.display = 'flex'; setTimeout(resizeCanvas, 100); canvasHistory = []; disableEraser(); }
-        function closeDrawingModal() { document.getElementById('drawing-modal').style.display = 'none'; }
-        function clearCanvas() { saveCanvasState(); ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-        function sendDrawing() { sendPayload('image', canvas.toDataURL('image/png'), {fileName: 'desenho.png'}); closeDrawingModal(); }
-
-        // --- SISTEMA DE ARQUIVOS E DOCUMENTOS ROBUSTO ---
-        function sendFile(input) {
-            const files = input.files;
-            if(files.length === 0) return;
-            Array.from(files).forEach((f, index) => {
-                setTimeout(() => {
-                    if(f.size > MAX_PAYLOAD) {
-                        return;
-                    }
-                    const r = new FileReader();
-                    r.onload = e => {
-                        let type = 'file';
-                        const ext = f.name.split('.').pop().toLowerCase();
-                        if (f.type.startsWith('image/')) type = 'image';
-                        else if (f.type.startsWith('video/')) type = 'video';
-                        else if (f.type.startsWith('audio/')) type = 'audio';
-                        else if (f.type === 'application/pdf' || ext === 'pdf') type = 'pdf';
-                        else if (['txt', 'md', 'js', 'html', 'css', 'json', 'py', 'csv', 'log'].includes(ext) || f.type.startsWith('text/')) type = 'document';
-                        
-                        sendPayload(type, e.target.result, { fileName: f.name, mimeType: f.type || 'application/octet-stream' });
-                    };
-                    r.readAsDataURL(f);
-                }, index * 400);
-            });
-            input.value = '';
-        }
-
-        async function sendFolderPicker() {
-            if ('showDirectoryPicker' in window) {
-                try {
-                    const dirHandle = await window.showDirectoryPicker();
-                    const folderName = dirHandle.name;
-                    
-                    async function readDir(handle, path = '') {
-                        let folderFiles = [];
-                        for await (const entry of handle.values()) {
-                            if (entry.kind === 'file') {
-                                const file = await entry.getFile();
-                                const data = await new Promise((resolve) => {
-                                    const reader = new FileReader();
-                                    reader.onload = e => resolve(e.target.result);
-                                    reader.readAsDataURL(file);
-                                });
-                                folderFiles.push({
-                                    name: entry.name,
-                                    path: path ? `${path}/${entry.name}` : entry.name,
-                                    size: file.size,
-                                    type: file.type,
-                                    data: data
-                                });
-                            } else if (entry.kind === 'directory') {
-                                const subFiles = await readDir(entry, path ? `${path}/${entry.name}` : entry.name);
-                                folderFiles.push(...subFiles);
-                            }
-                        }
-                        return folderFiles;
-                    }
-
-                    const files = await readDir(dirHandle);
-                    sendPayload('folder', JSON.stringify(files), { folderName: folderName, filesCount: files.length });
-                } catch(e) {}
-            } else {
-                console.warn("Directory Picker not supported");
-            }
-        }
-
-        function dataURItoBlob(dataURI) {
-            try {
-                const parts = dataURI.split(',');
-                if (parts.length < 2) return null;
-                const byteString = atob(parts[1]);
-                const mimeString = parts[0].split(':')[1] ? parts[0].split(':')[1].split(';')[0] : 'application/octet-stream';
-                const ab = new ArrayBuffer(byteString.length);
-                const ia = new Uint8Array(ab);
-                for (let i = 0; i < byteString.length; i++) {
-                    ia[i] = byteString.charCodeAt(i);
-                }
-                return new Blob([ab], {type: mimeString});
-            } catch(e) {
-                return null;
-            }
-        }
-
-        function openMessageViewer(msgId) {
-            const msg = window.messageStore[msgId];
-            if(!msg) return;
-
-            const modal = document.getElementById('document-viewer-modal');
-            const titleEl = document.getElementById('doc-viewer-title');
-            const subEl = document.getElementById('doc-viewer-subtitle');
-            const container = document.getElementById('doc-viewer-content-container');
-            const downloadBtn = document.getElementById('doc-viewer-download');
-            const iconEl = document.getElementById('doc-viewer-icon');
-
-            titleEl.innerText = msg.fileName || "Documento";
-            downloadBtn.href = msg.content;
-            downloadBtn.download = msg.fileName || "arquivo";
-            container.innerHTML = '';
-
-            const blob = dataURItoBlob(msg.content);
-            const blobUrl = blob ? URL.createObjectURL(blob) : msg.content;
-
-            if (msg.type === 'pdf') {
-                iconEl.innerText = '📄';
-                subEl.innerText = 'Visualizador de PDF';
-                container.innerHTML = `<iframe src="${blobUrl}" class="w-full h-full rounded-lg bg-white border border-app-border"></iframe>`;
-            } else if (msg.type === 'image') {
-                iconEl.innerText = '🖼️';
-                subEl.innerText = 'Visualizador de Imagem';
-                container.innerHTML = `<img src="${msg.content}" class="max-w-full max-h-full object-contain rounded-lg shadow-lg">`;
-            } else if (msg.type === 'document' || msg.mimeType?.startsWith('text/')) {
-                iconEl.innerText = '📝';
-                subEl.innerText = 'Visualizador de Texto / Código';
-                try {
-                    const base64Content = msg.content.split(',')[1];
-                    const decodedText = decodeURIComponent(escape(atob(base64Content)));
-                    container.innerHTML = `<pre class="w-full h-full bg-app-panel p-4 rounded-xl text-xs md:text-sm font-mono text-app-text overflow-auto whitespace-pre-wrap select-text">${escapeHtml(decodedText)}</pre>`;
-                } catch(e) {
-                    container.innerHTML = `<iframe src="${blobUrl}" class="w-full h-full rounded-lg bg-white"></iframe>`;
-                }
-            } else {
-                iconEl.innerText = '📁';
-                subEl.innerText = 'Arquivo';
-                container.innerHTML = `<div class="text-center p-6"><p class="mb-4 text-app-text">Visualização direta indisponível para este formato.</p><a href="${msg.content}" download="${msg.fileName}" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">Baixar Arquivo</a></div>`;
-            }
-
-            modal.style.display = 'flex';
-        }
-
-        function closeDocumentViewer() {
-            document.getElementById('document-viewer-modal').style.display = 'none';
-            document.getElementById('doc-viewer-content-container').innerHTML = '';
-        }
-
-        function openFolderViewer(msgId) {
-            const msg = window.messageStore[msgId];
-            if(!msg) return;
-
-            try {
-                const files = JSON.parse(msg.content);
-                const modal = document.getElementById('folder-viewer-modal');
-                document.getElementById('folder-viewer-title').innerText = msg.folderName;
-                document.getElementById('folder-viewer-subtitle').innerText = `${files.length} arquivo(s) na pasta`;
-                
-                const listContainer = document.getElementById('folder-files-list');
-                listContainer.innerHTML = '';
-
-                files.forEach((file, index) => {
-                    const fileExt = file.name.split('.').pop().toLowerCase();
-                    let icon = '📄';
-                    if(['png','jpg','jpeg','gif','webp'].includes(fileExt)) icon = '🖼️';
-                    else if(fileExt === 'pdf') icon = '📄';
-                    else if(['js','html','css','py','json','txt','md'].includes(fileExt)) icon = '📝';
-
-                    const subMsgId = `${msgId}_sub_${index}`;
-                    window.messageStore[subMsgId] = {
-                        fileName: file.name,
-                        content: file.data,
-                        type: file.type && file.type.includes('pdf') ? 'pdf' : (file.type && file.type.startsWith('image/') ? 'image' : 'document'),
-                        mimeType: file.type
-                    };
-
-                    listContainer.innerHTML += `
-                        <div class="flex items-center justify-between p-3 bg-app-input/60 hover:bg-app-input rounded-xl border border-app-border transition">
-                            <div class="flex items-center gap-3 overflow-hidden">
-                                <span class="text-2xl shrink-0">${icon}</span>
-                                <div class="overflow-hidden">
-                                    <h4 class="font-bold text-sm text-app-text truncate">${file.path || file.name}</h4>
-                                    <p class="text-[11px] text-app-text-muted">(${(file.size / 1024).toFixed(1)} KB)</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-2 shrink-0">
-                                <button onclick="openMessageViewer('${subMsgId}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition">🔍 Visualizar</button>
-                                <a href="${file.data}" download="${file.name}" class="px-3 py-1.5 bg-app-panel hover:bg-app-border text-app-text text-xs font-bold rounded-lg transition">📥 Baixar</a>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                modal.style.display = 'flex';
-            } catch(e) {}
-        }
-
-        function closeFolderViewer() {
-            document.getElementById('folder-viewer-modal').style.display = 'none';
-        }
-
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
-
-        // --- SISTEMA DE CONEXÃO E MQTT OTIMIZADO ---
         function startApp() {
             const n = document.getElementById('username').value.trim();
-            if (!n) {
-                const usernameInput = document.getElementById('username');
-                usernameInput.classList.add('border-red-500', 'ring-2', 'ring-red-500');
-                usernameInput.placeholder = 'Por favor, digite seu apelido!';
-                setTimeout(() => {
-                    usernameInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500');
-                    usernameInput.placeholder = 'Seu apelido...';
-                }, 2000);
-                return; 
-            }
-            myProfile.name = n; 
-            myProfile.status = document.getElementById('userstatus').value.trim();
-            if (!myProfile.avatar) {
-                myProfile.avatar = document.getElementById('avatar-preview').src || `https://api.dicebear.com/7.x/avataaars/svg?seed=${myProfile.id}`;
-            }
+            const s = document.getElementById('userstatus').value.trim();
+            if (!n) return alert('Digite um apelido!');
+            myProfile.name = n; myProfile.status = s || 'Disponível'; myProfile.avatar = document.getElementById('avatar-preview').src;
+            
+            document.getElementById('login-status').classList.remove('hidden');
+            connectMQTT();
+        }
 
-            let appStarted = false;
-            function enterAppUI() {
-                if (appStarted) return;
-                appStarted = true;
-                document.getElementById('login-screen').style.display = 'none'; 
+        function connectMQTT() {
+            client = mqtt.connect(BROKER_URL, { clientId: myProfile.id });
+            client.on('connect', () => {
+                client.subscribe(`${APP_TOPIC}/discovery`); 
+                client.subscribe(`${APP_TOPIC}/msg/${myProfile.id}`);
+                
+                document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.opacity = '1'; 
                 document.getElementById('main-app').style.pointerEvents = 'auto';
+                
                 document.getElementById('my-avatar').src = myProfile.avatar; 
                 document.getElementById('my-name').innerText = myProfile.name;
-                document.getElementById('my-status').innerText = myProfile.status || 'Online';
-            }
+                document.getElementById('my-status').innerText = myProfile.status;
+                
+                setInterval(() => { myProfile.lastSeen = Date.now(); client.publish(`${APP_TOPIC}/discovery`, JSON.stringify(myProfile)); }, 3000);
+                setInterval(cleanupUsers, 5000);
+            });
 
-            const safetyTimeout = setTimeout(() => {
-                enterAppUI();
-            }, 3000);
+            client.on('message', (t, m) => { 
+                try { const d = JSON.parse(m.toString()); if(t.includes('discovery')) handlePresence(d); else handleIncomingMessage(d, t); } catch(e){} 
+            });
+        }
 
-            try {
-                if (typeof mqtt === 'undefined') {
-                    clearTimeout(safetyTimeout);
-                    enterAppUI();
-                    return;
-                }
-
-                client = mqtt.connect(BROKER_URL, { 
-                    clientId: myProfile.id,
-                    clean: true,
-                    connectTimeout: 4000
-                });
-
-                client.on('connect', () => {
-                    clearTimeout(safetyTimeout);
-                    enterAppUI();
-
-                    client.subscribe(`${APP_TOPIC}/discovery`); 
-                    client.subscribe(`${APP_TOPIC}/msg/${myProfile.id}`);
-                    client.subscribe(`${APP_TOPIC}/group/#`);
-                    
-                    setInterval(() => { 
-                        myProfile.lastSeen = Date.now(); 
-                        if (client && client.connected) {
-                            client.publish(`${APP_TOPIC}/discovery`, JSON.stringify(myProfile)); 
-                        }
-                    }, 3000);
-                });
-
-                client.on('error', (err) => {
-                    console.error('MQTT Error:', err);
-                });
-
-                client.on('offline', () => {
-                    console.warn('MQTT Offline');
-                });
-
-                client.on('message', (t, m) => { 
-                    try { 
-                        const d = JSON.parse(m.toString()); 
-                        if(t.includes('discovery')) { 
-                            if(d.id && d.id !== myProfile.id) { users.set(d.id, d); updateUI(); } 
-                        } else if(t.includes('groupdiscovery')) {
-                            if(d.id && !groups[d.id]) {
-                                groups[d.id] = d;
-                                client.subscribe(`${APP_TOPIC}/group/${d.id}`);
-                                updateUI();
-                            }
-                        } else {
-                            handleIncomingMessage(d, t);
-                        }
-                    } catch(e){} 
-                });
-            } catch(e) {
-                clearTimeout(safetyTimeout);
-                enterAppUI();
-            }
+        function handlePresence(u) { if (u.id === myProfile.id) return; users.set(u.id, u); updateUI(); }
+        function cleanupUsers() {
+            const now = Date.now(); let changed = false;
+            for (let [id, u] of users.entries()) { if (now - u.lastSeen > 12000) { users.delete(id); changed = true; } }
+            if (changed) updateUI();
         }
 
         function updateUI() {
-            const listEl = document.getElementById('users-list'); listEl.innerHTML = '';
+            const listEl = document.getElementById('users-list');
+            const search = document.getElementById('search-chat').value.toLowerCase();
+            listEl.innerHTML = '';
+            
             const renderItem = (id, data, isGroup) => {
-                const unread = (chats[id]||[]).filter(m => m.unread).length;
-                const badge = unread ? `<div class="bg-blue-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow-lg">${unread}</div>` : '';
-                listEl.innerHTML += `<div onclick="openChat('${id}', ${isGroup})" class="flex items-center p-3 rounded-xl cursor-pointer hover:bg-app-input/40 transition mb-1"><img src="${data.avatar}" class="w-12 h-12 rounded-full object-cover bg-app-panel"><div class="ml-3 flex-1"><h4 class="font-bold text-sm">${data.name}</h4></div>${badge}</div>`;
+                if(search && !data.name.toLowerCase().includes(search)) return;
+                
+                const msgs = chats[id] || [];
+                const unread = msgs.filter(m => m.unread).length;
+                const lastMsg = msgs.length > 0 ? msgs[msgs.length-1] : null;
+                
+                let previewText = data.status;
+                if (lastMsg) {
+                    if (lastMsg.type === 'text') previewText = lastMsg.content;
+                    else if (lastMsg.type === 'audio') previewText = '🎤 Áudio';
+                    else if (lastMsg.type === 'location') previewText = '📍 Localização';
+                    else if (lastMsg.type === 'delete') previewText = '🚫 Apagada';
+                    else if (lastMsg.type === 'image') previewText = '🖼️ Imagem';
+                    else previewText = '📎 Arquivo';
+                } else if (isGroup) {
+                    previewText = 'Novo grupo';
+                }
+                
+                const active = activeChatId === id ? 'bg-app-input border-app-accent border-l-4' : 'border-transparent hover:bg-app-input/40 border-l-4';
+                const badge = unread ? `<div class="text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow-lg" style="background-color: var(--app-accent)">${unread}</div>` : '';
+                
+                listEl.innerHTML += `
+                    <div onclick="openChat('${id}', ${isGroup})" class="flex items-center p-3 rounded-xl cursor-pointer transition mb-1 ${active}">
+                        <img src="${data.avatar}" class="w-12 h-12 rounded-full shrink-0 object-cover bg-app-panel">
+                        <div class="ml-3 flex-1 overflow-hidden">
+                            <div class="flex justify-between items-baseline w-full">
+                                <h4 class="font-bold text-app-text truncate text-sm">${isGroup ? '👥 ' : ''}${data.name}</h4>
+                            </div>
+                            <div class="flex justify-between items-center mt-0.5">
+                                <p class="text-xs text-app-text-muted truncate flex-1 mr-2">${previewText}</p>
+                                ${badge}
+                            </div>
+                        </div>
+                    </div>`;
             };
-            Object.keys(groups).forEach(gId => renderItem(gId, groups[gId], true)); 
+
+            Object.keys(groups).forEach(gId => renderItem(gId, groups[gId], true));
             users.forEach((u, id) => renderItem(id, u, false));
         }
 
         function openChat(id, isGroup) {
-            activeChatId = id; 
-            (chats[id]||[]).forEach(m => m.unread = false);
-            document.getElementById('empty-state').classList.add('hidden'); 
-            document.getElementById('chat-header').style.display = 'flex'; 
-            document.getElementById('messages-container').classList.remove('hidden'); 
+            activeChatId = id;
+            if (chats[id]) chats[id].forEach(m => m.unread = false); else chats[id] = [];
+            
+            if (window.innerWidth < 768) {
+                document.getElementById('app-sidebar').classList.add('hidden');
+                document.getElementById('app-chat-area').classList.remove('hidden');
+                document.getElementById('app-chat-area').classList.add('flex');
+            }
+
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('chat-header').style.display = 'flex';
+            document.getElementById('messages-container').classList.remove('hidden');
             document.getElementById('chat-input-area').classList.remove('hidden');
-            const data = isGroup ? groups[id] : users.get(id); 
-            document.getElementById('active-user-avatar').src = data ? data.avatar : ''; 
-            document.getElementById('active-user-name').innerText = data ? data.name : '';
-            updateUI(); 
-            renderMessages();
+            
+            const data = isGroup ? groups[id] : users.get(id);
+            document.getElementById('active-user-avatar').src = data.avatar;
+            document.getElementById('active-user-name').innerText = data.name;
+            document.getElementById('active-user-distance').innerText = isGroup ? `${data.members.length} participantes` : data.status;
+            
+            updateUI(); renderMessages();
         }
 
-        // --- SISTEMA DE CHUNKS 32KB OTIMIZADO & ROBUSTO ---
+        function backToSidebar() {
+            activeChatId = null;
+            document.getElementById('app-sidebar').classList.remove('hidden');
+            document.getElementById('app-chat-area').classList.add('hidden');
+            document.getElementById('app-chat-area').classList.remove('flex');
+            updateUI();
+        }
+
         function sendPayload(type, content, meta = {}, isVolatile = false) {
             if (!activeChatId) return;
-            const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-            const baseMsg = { id: msgId, senderId: myProfile.id, senderName: myProfile.name, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), type, ...meta };
-            const isGroupChat = !!groups[activeChatId];
-            const targetTopic = isGroupChat ? `${APP_TOPIC}/group/${activeChatId}` : `${APP_TOPIC}/msg/${activeChatId}`;
+            const msgObj = { id: 'msg_' + Date.now(), senderId: myProfile.id, senderName: myProfile.name, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), type, content, ...meta };
+            const payload = JSON.stringify(msgObj);
+            
+            if(payload.length > MAX_PAYLOAD) return alert('Arquivo excede o limite de 10MB do sistema.');
 
-            if (typeof content === 'string' && content.length > 20000) {
-                const chunkSize = 32768; // 32KB chunks for stable high-speed transfer
-                const totalChunks = Math.ceil(content.length / chunkSize);
-                
-                for (let i = 0; i < totalChunks; i++) {
-                    setTimeout(() => {
-                        const chunkContent = content.substring(i * chunkSize, (i + 1) * chunkSize);
-                        const chunkObj = { ...baseMsg, isChunk: true, msgId: msgId, chunkIndex: i, totalChunks: totalChunks, content: chunkContent };
-                        if (client && client.connected) {
-                            client.publish(targetTopic, JSON.stringify(chunkObj), { qos: 1 });
-                        }
-                    }, i * 35);
-                }
-
-                const completeObj = { ...baseMsg, content, isMe: true };
-                window.messageStore[msgId] = completeObj;
-                if(!isVolatile) { 
-                    if(!chats[activeChatId]) chats[activeChatId] = []; 
-                    chats[activeChatId].push(completeObj); 
-                    renderMessages(); 
-                    updateUI(); 
-                }
-            } else {
-                const msgObj = { ...baseMsg, content };
-                window.messageStore[msgId] = msgObj;
-                if (client && client.connected) {
-                    client.publish(targetTopic, JSON.stringify(msgObj), { qos: 1 });
-                }
-                if(!isVolatile) { 
-                    if(!chats[activeChatId]) chats[activeChatId] = []; 
-                    chats[activeChatId].push({ ...msgObj, isMe: true }); 
-                    renderMessages(); 
-                    updateUI(); 
-                }
+            const topic = groups[activeChatId] ? `${APP_TOPIC}/group/${activeChatId}` : `${APP_TOPIC}/msg/${activeChatId}`;
+            client.publish(topic, payload);
+            
+            if(!isVolatile) {
+                if(!chats[activeChatId]) chats[activeChatId] = [];
+                chats[activeChatId].push({ ...msgObj, isMe: true });
+                renderMessages(); updateUI();
             }
         }
 
         function sendTextMessage() {
-            const i = document.getElementById('message-input'); 
-            if (i.value.trim()) { 
-                sendPayload('text', i.value.trim()); 
-                i.value = ''; 
-            }
+            const i = document.getElementById('message-input');
+            if (i.value.trim()) { sendPayload('text', i.value.trim()); i.value = ''; sendPayload('typing','',{isTyping:false},true); }
         }
 
-        window.incomingChunks = window.incomingChunks || {};
-
-        // Cleaner for stale chunk states
-        setInterval(() => {
-            const now = Date.now();
-            for (let id in window.incomingChunks) {
-                if (now - window.incomingChunks[id].timestamp > 60000) {
-                    delete window.incomingChunks[id];
-                }
-            }
-        }, 30000);
+        function handleTyping() {
+            sendPayload('typing', '', { isTyping: true }, true);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => sendPayload('typing', '', { isTyping: false }, true), 1500);
+        }
 
         function handleIncomingMessage(msg, topic) {
-            let targetId = msg.senderId; 
+            let targetId = msg.senderId;
             if (topic.includes('/group/')) targetId = topic.split('/').pop();
-            if (msg.senderId === myProfile.id) return;
             
-            if (msg.isChunk) {
-                if (!window.incomingChunks[msg.msgId]) {
-                    window.incomingChunks[msg.msgId] = { 
-                        chunks: new Array(msg.totalChunks), 
-                        received: 0, 
-                        receivedIndices: new Set(),
-                        meta: msg, 
-                        targetId,
-                        timestamp: Date.now()
-                    };
-                }
-                
-                const tracker = window.incomingChunks[msg.msgId];
-                if (!tracker.receivedIndices.has(msg.chunkIndex)) {
-                    tracker.chunks[msg.chunkIndex] = msg.content;
-                    tracker.receivedIndices.add(msg.chunkIndex);
-                    tracker.received++;
-                }
-
-                if (tracker.received === msg.totalChunks) {
-                    const fullContent = tracker.chunks.join('');
-                    const completeMsg = { ...tracker.meta, content: fullContent, isMe: false, unread: activeChatId !== targetId };
-                    const dest = tracker.targetId;
-                    delete window.incomingChunks[msg.msgId];
-                    
-                    window.messageStore[completeMsg.id] = completeMsg;
-                    if (!chats[dest]) chats[dest] = []; 
-                    chats[dest].push(completeMsg);
-                    if (activeChatId === dest) renderMessages(); else updateUI();
-                }
+            if (msg.type === 'group_invite') {
+                if(!groups[msg.groupData.id]) { groups[msg.groupData.id] = msg.groupData; client.subscribe(`${APP_TOPIC}/group/${msg.groupData.id}`); updateUI(); }
                 return;
             }
 
-            window.messageStore[msg.id] = msg;
+            if (msg.senderId === myProfile.id) return; 
 
-            if (!chats[targetId]) chats[targetId] = []; 
+            if (msg.type === 'typing') {
+                if (activeChatId === targetId) {
+                    const ind = document.getElementById('typing-indicator');
+                    if(msg.isTyping) { ind.classList.remove('hidden'); ind.querySelector('span').innerText = (msg.senderName || 'Alguém') + ' está digitando'; } 
+                    else ind.classList.add('hidden');
+                }
+                return;
+            }
+            if (msg.type === 'delete') {
+                const idx = chats[targetId].findIndex(m => m.id === msg.content);
+                if(idx > -1) { chats[targetId][idx].type = 'deleted'; chats[targetId][idx].content = ''; if(activeChatId === targetId) renderMessages(); updateUI(); }
+                return;
+            }
+
+            if (!chats[targetId]) chats[targetId] = [];
             chats[targetId].push({ ...msg, isMe: false, unread: activeChatId !== targetId });
             if (activeChatId === targetId) renderMessages(); else updateUI();
         }
@@ -826,90 +657,76 @@
         function renderMessages() {
             const c = document.getElementById('messages-container'); c.innerHTML = '';
             (chats[activeChatId] || []).forEach(m => {
-                const align = m.isMe ? 'justify-end' : 'justify-start';
-                const bg = m.isMe ? 'bg-app-message-me text-white rounded-br-sm' : 'bg-app-message-other text-app-text rounded-bl-sm';
-                let html = '';
+                const isMe = m.isMe;
+                const align = isMe ? 'justify-end' : 'justify-start';
                 
-                if(m.type === 'text') html = `<p class="text-[15px] break-words">${m.content}</p>`;
-                else if(m.type === 'image') html = `<div class="cursor-pointer" onclick="openMessageViewer('${m.id}')"><img src="${m.content}" class="rounded-lg w-64 max-w-full bg-white object-cover"></div>`;
-                else if(m.type === 'video') html = `<video src="${m.content}" controls class="w-64 max-w-full rounded-md shadow-sm"></video>`;
-                else if(m.type === 'audio') html = `<audio src="${m.content}" controls class="w-56 max-w-full rounded-md shadow-sm"></audio>`;
-                else if(m.type === 'pdf') html = `<div class="flex items-center gap-3 bg-black/20 p-3 rounded-lg w-64"><span class="text-3xl">📄</span><div class="overflow-hidden flex-1"><p class="text-sm font-bold truncate">${m.fileName}</p><div class="flex gap-2 mt-1"><button onclick="openMessageViewer('${m.id}')" class="text-xs font-bold bg-blue-600 text-white px-2 py-1 rounded">Visualizar</button><a href="${m.content}" download="${m.fileName}" class="text-xs underline text-blue-300 self-center">Baixar</a></div></div></div>`;
-                else if(m.type === 'document') html = `<div class="flex items-center gap-3 bg-black/20 p-3 rounded-lg w-64"><span class="text-3xl">📝</span><div class="overflow-hidden flex-1"><p class="text-sm font-bold truncate">${m.fileName}</p><div class="flex gap-2 mt-1"><button onclick="openMessageViewer('${m.id}')" class="text-xs font-bold bg-blue-600 text-white px-2 py-1 rounded">Visualizar</button><a href="${m.content}" download="${m.fileName}" class="text-xs underline text-blue-300 self-center">Baixar</a></div></div></div>`;
-                else if(m.type === 'folder') html = `<div class="flex items-center gap-3 bg-black/20 p-3 rounded-lg w-64"><span class="text-3xl">📁</span><div class="overflow-hidden flex-1"><p class="text-sm font-bold truncate">${m.folderName}</p><p class="text-[11px] opacity-80">${m.filesCount} arquivos na pasta</p><button onclick="openFolderViewer('${m.id}')" class="mt-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded transition block text-center">Explorar Pasta</button></div></div>`;
-                else if(m.type === 'file') html = `<div class="flex items-center gap-3 bg-black/20 p-3 rounded-lg w-56"><span class="text-3xl">📁</span><div class="overflow-hidden"><p class="text-sm font-bold truncate">${m.fileName}</p><a href="${m.content}" download="${m.fileName}" class="text-xs underline text-blue-300">Baixar Arquivo</a></div></div>`;
-                else if(m.type === 'location') html = `<a href="https://maps.google.com/?q=${m.content}" target="_blank" class="flex items-center gap-2 font-bold underline">📍 Abrir Mapa</a>`;
+                const bg = isMe ? 'bg-app-message-me text-white rounded-br-sm' : 'bg-app-message-other text-app-text rounded-bl-sm border border-app-border';
+                const nameLabel = (!isMe && groups[activeChatId]) ? `<p class="text-[10px] font-bold mb-0.5 opacity-80" style="color: var(--app-accent)">${m.senderName}</p>` : '';
+                
+                let html = '';
+                if(m.type === 'deleted') html = `<p class="text-sm italic opacity-60 flex items-center gap-1">🚫 Mensagem apagada</p>`;
+                else if(m.type === 'text') html = `<p class="text-[15px] leading-relaxed break-words">${m.content}</p>`;
+                else if(m.type === 'image') html = `<img src="${m.content}" class="rounded-lg w-64 max-w-full cursor-pointer hover:opacity-90 bg-white" onclick="window.open('${m.content}')">`;
+                else if(m.type === 'audio') html = `<audio src="${m.content}" controls class="w-48 sm:w-64 max-w-full rounded-md shadow-sm"></audio>`;
+                else if(m.type === 'location') html = `<a href="https://maps.google.com/?q=${m.content}" target="_blank" class="flex items-center gap-2 font-bold underline hover:opacity-80 py-1">📍 Ver no Mapa</a>`;
+                
+                const deleteEvt = isMe && m.type !== 'deleted' ? `ondblclick="requestDeleteMessage('${m.id}')" title="Duplo clique para apagar"` : '';
 
-                c.innerHTML += `<div class="flex w-full ${align} message-enter"><div class="max-w-[85%] px-3 py-2 rounded-2xl ${bg} shadow-sm">${html}<div class="text-[9px] mt-1 text-right opacity-60">${m.time}</div></div></div>`;
+                c.innerHTML += `
+                    <div class="flex w-full ${align} message-enter">
+                        <div class="max-w-[80%] px-3 py-2 rounded-2xl ${bg} shadow-sm relative group" ${deleteEvt}>
+                            ${nameLabel}${html}
+                            <div class="text-[9px] mt-1 text-right opacity-60 flex justify-end items-center gap-1">
+                                ${m.time} ${isMe ? '✓✓' : ''}
+                            </div>
+                        </div>
+                    </div>`;
             });
             c.scrollTop = c.scrollHeight;
         }
-        
-        function changeAppTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
-        function openSettingsModal() { document.getElementById('settings-modal').style.display = 'flex'; }
-        function saveSettings() { document.getElementById('settings-modal').style.display = 'none'; }
-        function openBrowserModal() { document.getElementById('browser-modal').style.display = 'flex'; }
-        
-        function openGroupModal() {
-            const listContainer = document.getElementById('group-members-container');
-            listContainer.innerHTML = '';
-            if (users.size === 0) {
-                listContainer.innerHTML = '<p class="text-xs text-app-text-muted text-center py-2">Nenhum outro usuário online no momento.</p>';
-            } else {
-                users.forEach((u, id) => {
-                    listContainer.innerHTML += `
-                        <label class="flex items-center gap-3 p-2 hover:bg-app-input rounded-lg cursor-pointer transition">
-                            <input type="checkbox" value="${id}" class="group-member-checkbox accent-blue-500 w-4 h-4">
-                            <img src="${u.avatar}" class="w-8 h-8 rounded-full object-cover">
-                            <span class="text-sm font-bold text-app-text">${u.name}</span>
-                        </label>
-                    `;
-                });
+
+        function requestDeleteMessage(msgId) {
+            if(confirm("Deseja apagar esta mensagem para todos?")) {
+                sendPayload('delete', msgId);
+                const idx = chats[activeChatId].findIndex(m => m.id === msgId);
+                if(idx > -1) { chats[activeChatId][idx].type = 'deleted'; chats[activeChatId][idx].content = ''; renderMessages(); updateUI(); }
             }
+        }
+
+        // NOVO NAVEGADOR (BING / GENÉRICO)
+        function openBrowserModal() { document.getElementById('browser-modal').style.display = 'flex'; }
+        function closeBrowserModal() { document.getElementById('browser-modal').style.display = 'none'; }
+        function navigateBrowser() {
+            let val = document.getElementById('browser-url-input').value.trim();
+            if(!val) return;
+            let url = val;
+            if (!val.includes('.') || val.includes(' ')) url = 'https://www.bing.com/search?q=' + encodeURIComponent(val);
+            else if (!val.startsWith('http')) url = 'https://' + val;
+            document.getElementById('browser-frame').src = url;
+        }
+
+        function sendFile(input) {
+            const f = input.files[0]; if(!f) return;
+            if(f.size > 10*1024*1024) return alert('Máximo de 10MB por arquivo!');
+            const r = new FileReader();
+            r.onload = e => sendPayload(f.type.startsWith('image/')?'image':'file', e.target.result, {fileName: f.name});
+            r.readAsDataURL(f); input.value = '';
+        }
+
+        function openGroupModal() {
+            const listEl = document.getElementById('group-members-list'); listEl.innerHTML = '';
+            if(users.size === 0) listEl.innerHTML = `<p class="text-xs text-center text-app-text-muted">Nenhum usuário online.</p>`;
+            users.forEach(u => listEl.innerHTML += `<label class="flex items-center gap-2 p-2 hover:bg-app-input rounded cursor-pointer"><input type="checkbox" value="${u.id}" class="cb-member"><img src="${u.avatar}" class="w-6 h-6 rounded-full"><span class="text-sm">${u.name}</span></label>`);
             document.getElementById('group-modal').style.display = 'flex';
         }
-
         function createGroup() {
-            const nameInput = document.getElementById('group-name-input');
-            const groupName = nameInput.value.trim();
-            if (!groupName) return;
-
-            const groupId = 'group_' + Math.random().toString(36).substr(2, 9);
-            const checkboxes = document.querySelectorAll('.group-member-checkbox:checked');
-            const members = [myProfile.id, ...Array.from(checkboxes).map(cb => cb.value)];
-
-            const groupObj = {
-                id: groupId,
-                name: groupName,
-                avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${groupId}`,
-                members: members
-            };
-
-            groups[groupId] = groupObj;
-            if (client && client.connected) {
-                client.subscribe(`${APP_TOPIC}/group/${groupId}`);
-                client.publish(`${APP_TOPIC}/groupdiscovery`, JSON.stringify(groupObj), { qos: 1 });
-            }
-
-            nameInput.value = '';
-            document.getElementById('group-modal').style.display = 'none';
-            updateUI();
-            openChat(groupId, true);
-        }
-
-        function handleTyping() {}
-        function backToSidebar() {
-            document.getElementById('app-chat-area').classList.add('hidden');
-            document.getElementById('app-sidebar').classList.remove('hidden');
-        }
-        function sendLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    sendPayload('location', `${lat},${lon}`);
-                }, () => {});
-            }
+            const name = document.getElementById('group-name-input').value.trim(); if(!name) return;
+            const members = Array.from(document.querySelectorAll('.cb-member:checked')).map(cb => cb.value); members.push(myProfile.id);
+            const gId = 'g_' + Date.now();
+            groups[gId] = { id: gId, name: name, members: members, avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${gId}` };
+            client.subscribe(`${APP_TOPIC}/group/${gId}`);
+            members.forEach(m => { if(m!==myProfile.id) client.publish(`${APP_TOPIC}/msg/${m}`, JSON.stringify({type:'group_invite', groupData:groups[gId]})); });
+            document.getElementById('group-modal').style.display = 'none'; openChat(gId, true);
         }
     </script>
 </body>
