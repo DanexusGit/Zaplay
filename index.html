@@ -2,8 +2,8 @@
 <html lang="pt-BR" data-theme="default">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GeoChat - Ultimate Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>GeoChat</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -160,6 +160,63 @@
         #music-player.dragging { transition: none !important; }
         #music-player { transition: left .15s ease, top .15s ease; }
         @media (prefers-reduced-motion: reduce) { #music-bubble-icon.spinning { animation: none !important; } }
+
+        /* ===================================================================
+           RESPONSIVIDADE — a interface se ajusta ao dispositivo/resolução
+           =================================================================== */
+
+        /* Altura real da tela em mobile (evita corte causado pela barra de
+           endereço do navegador, que o "100vh" clássico não considera) */
+        html, body { height: 100%; }
+        body.h-screen { height: 100dvh; }
+
+        /* Áreas seguras (notch/ilha dinâmica/barra de gestos) */
+        #incoming-call-banner { top: max(1rem, env(safe-area-inset-top)); }
+        #active-call-bar { bottom: max(1rem, env(safe-area-inset-bottom)); left: max(1rem, env(safe-area-inset-left)); }
+        #music-player { bottom: max(1rem, env(safe-area-inset-bottom)); right: max(1rem, env(safe-area-inset-right)); }
+        #login-screen { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+        #chat-input-area { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+
+        /* Telas muito pequenas (celulares compactos, <400px) */
+        @media (max-width: 400px) {
+            #tab-appearance .grid-cols-4, #tab-wallpaper .grid-cols-4 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+            #call-peer-name, #call-timer { max-width: 70px; }
+            #active-call-bar { padding: 0.4rem 0.6rem; gap: 0.4rem; }
+            #active-call-bar button { width: 1.9rem; height: 1.9rem; font-size: 0.8rem; }
+            .settings-tab-btn { font-size: 10px; padding: 0.5rem 0.15rem; }
+            #music-panel { width: 78vw; }
+        }
+
+        /* Celulares em paisagem / telas curtas (altura reduzida) */
+        @media (max-height: 480px) {
+            #login-screen .login-blob { display: none; }
+            #settings-modal .modal-card, #group-modal .modal-card { max-height: 92vh; }
+            #tab-appearance, #tab-wallpaper, #tab-profile { max-height: 40vh; }
+        }
+
+        /* Tablets: ajustes finos de espaçamento */
+        @media (min-width: 640px) and (max-width: 1023px) {
+            #app-sidebar { width: 320px; }
+        }
+
+        /* Telas grandes / monitores ultrawide: evita esticar demais o conteúdo,
+           como fazem versões web de apps de chat conhecidos */
+        @media (min-width: 1440px) {
+            #app-sidebar { width: 400px; }
+            #messages-inner { max-width: 46rem; }
+            #chat-input-area > div:last-child { max-width: 46rem; margin: 0 auto; }
+            #chat-header > div:first-child { max-width: 46rem; }
+        }
+        @media (min-width: 1920px) {
+            #messages-inner { max-width: 52rem; }
+            #chat-input-area > div:last-child { max-width: 52rem; }
+        }
+
+        /* Dispositivos sem hover (touch): aumenta um pouco a área de toque dos
+           ícones de ação das mensagens, que dependem de hover no desktop */
+        @media (hover: none) {
+            .msg-bubble .group-hover\:flex { display: flex !important; opacity: .55; }
+        }
     </style>
 </head>
 <body class="bg-app-bg text-app-text h-screen flex overflow-hidden font-sans transition-colors duration-300">
@@ -287,7 +344,9 @@
                 <p class="text-sm max-w-md">Selecione uma conversa na lateral ou crie um novo grupo para começar.</p>
             </div>
 
-            <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 no-scrollbar hidden bg-app-bg pb-4"></div>
+            <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar hidden bg-app-bg pb-4">
+                <div id="messages-inner" class="space-y-3 max-w-3xl mx-auto w-full"></div>
+            </div>
 
             <div id="typing-indicator" class="hidden px-6 pb-2 text-xs text-app-text-muted italic flex items-center gap-2">
                 <span>Alguém está digitando</span>
@@ -1341,7 +1400,7 @@
         }
 
         function renderMessages() {
-            const c = document.getElementById('messages-container'); c.innerHTML = '';
+            const c = document.getElementById('messages-inner'); c.innerHTML = '';
             (chats[activeChatId] || []).forEach(m => {
                 const isMe = m.isMe;
                 const align = isMe ? 'justify-end' : 'justify-start';
@@ -1387,7 +1446,8 @@
                         </div>
                     </div>`;
             });
-            c.scrollTop = c.scrollHeight;
+            const scrollWrap = document.getElementById('messages-container');
+            scrollWrap.scrollTop = scrollWrap.scrollHeight;
         }
 
         function requestDeleteMessage(msgId) {
