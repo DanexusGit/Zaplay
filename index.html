@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GeoChat</title>
+    <title>GeoChat - Ultimate Edition</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -148,6 +148,18 @@
             .login-blob, .message-enter, .list-item-enter, .settings-tab-panel { animation: none !important; }
             .modal-overlay, .modal-card, .tap-btn { transition: none !important; }
         }
+
+        /* ===== Player de Música ===== */
+        #music-panel { transform: translateY(12px) scale(.95); opacity: 0; transition: transform .25s cubic-bezier(.22,1,.36,1), opacity .2s ease; pointer-events: none; }
+        #music-panel.is-open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+        .music-bar { width: 4px; height: 6px; border-radius: 2px; background-color: var(--app-accent); transition: height .12s ease; }
+        #music-bubble-icon.spinning { display: inline-block; animation: spinDisc 3s linear infinite; }
+        @keyframes spinDisc { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .music-playlist-item.playing { background-color: var(--app-input); border-left: 3px solid var(--app-accent); }
+        #music-player.dragging #music-bubble { cursor: grabbing; }
+        #music-player.dragging { transition: none !important; }
+        #music-player { transition: left .15s ease, top .15s ease; }
+        @media (prefers-reduced-motion: reduce) { #music-bubble-icon.spinning { animation: none !important; } }
     </style>
 </head>
 <body class="bg-app-bg text-app-text h-screen flex overflow-hidden font-sans transition-colors duration-300">
@@ -244,6 +256,7 @@
                 </div>
                 <div class="flex gap-2 shrink-0">
                     <button onclick="openBrowserModal()" class="tap-btn w-10 h-10 rounded-full bg-app-input hover:brightness-110 transition flex items-center justify-center text-lg" style="color: var(--app-accent)" title="Navegador">🌐</button>
+                    <button onclick="toggleMusicPanel()" class="tap-btn w-10 h-10 rounded-full bg-app-input hover:brightness-110 transition flex items-center justify-center text-lg" style="color: var(--app-accent)" title="Música">🎵</button>
                     <button onclick="openGroupModal()" class="tap-btn w-10 h-10 rounded-full bg-app-input hover:brightness-110 transition flex items-center justify-center text-lg" style="color: var(--app-accent)" title="Novo Grupo">➕</button>
                 </div>
             </div>
@@ -265,6 +278,7 @@
                         <p id="active-user-distance" class="text-[11px]" style="color: var(--app-accent)">Status</p>
                     </div>
                 </div>
+                <button id="call-btn" onclick="startVoiceCall()" class="tap-btn w-10 h-10 rounded-full bg-app-input hover:brightness-110 flex items-center justify-center text-lg" style="color: var(--app-accent)" title="Chamada de voz">📞</button>
             </div>
 
             <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-app-text-muted z-10 p-4 text-center bg-app-bg">
@@ -281,6 +295,13 @@
             </div>
 
             <div id="chat-input-area" class="p-3 md:p-4 bg-app-panel border-t border-app-border hidden shrink-0">
+                <div id="reply-preview" class="hidden items-center justify-between gap-2 bg-app-input rounded-lg px-3 py-2 mb-2 border-l-4" style="border-color: var(--app-accent)">
+                    <div class="overflow-hidden">
+                        <p class="text-xs font-bold" style="color: var(--app-accent)">Respondendo a <span id="reply-preview-name"></span></p>
+                        <p id="reply-preview-snippet" class="text-xs text-app-text-muted truncate"></p>
+                    </div>
+                    <button onclick="cancelReply()" class="tap-btn text-app-text-muted hover:text-red-500 font-bold px-2">✕</button>
+                </div>
                 <div class="flex items-center gap-1 bg-app-input rounded-2xl px-2 py-1 md:py-2">
                     <button onclick="document.getElementById('file-input').click()" class="tap-btn p-2 text-app-text-muted hover:text-white transition rounded-full hover:bg-app-panel" title="Anexar Arquivo">📎</button>
                     <input type="file" id="file-input" class="hidden" onchange="sendFile(this)">
@@ -1087,6 +1108,9 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.opacity = '1'; 
                 document.getElementById('main-app').style.pointerEvents = 'auto';
+                document.getElementById('music-player').classList.remove('hidden');
+                initMusicPlaylist();
+                if (window.restorePlayerPosition) window.restorePlayerPosition();
                 
                 document.getElementById('my-avatar').src = myProfile.avatar; 
                 document.getElementById('my-name').innerText = myProfile.name;
@@ -1175,6 +1199,7 @@
             document.getElementById('active-user-avatar').src = data.avatar;
             document.getElementById('active-user-name').innerText = data.name;
             document.getElementById('active-user-distance').innerText = isGroup ? `${data.members.length} participantes` : data.status;
+            document.getElementById('call-btn').classList.toggle('hidden', !!isGroup);
             
             updateUI(); renderMessages();
         }
@@ -1206,7 +1231,13 @@
 
         function sendTextMessage() {
             const i = document.getElementById('message-input');
-            if (i.value.trim()) { sendPayload('text', i.value.trim()); i.value = ''; sendPayload('typing','',{isTyping:false},true); }
+            if (i.value.trim()) {
+                const meta = replyingTo ? { replyTo: replyingTo } : {};
+                sendPayload('text', i.value.trim(), meta);
+                i.value = '';
+                cancelReply();
+                sendPayload('typing','',{isTyping:false},true);
+            }
         }
 
         function handleTyping() {
@@ -1226,6 +1257,17 @@
 
             if (msg.senderId === myProfile.id) return; 
 
+            const CALL_SIGNAL_TYPES = ['call-offer','call-answer','call-ice','call-end','cinema-start','cinema-end'];
+            if (CALL_SIGNAL_TYPES.includes(msg.type)) {
+                if (msg.type === 'call-offer') handleIncomingCallOffer(msg);
+                else if (msg.type === 'call-answer') handleCallAnswer(msg);
+                else if (msg.type === 'call-ice') handleCallIce(msg);
+                else if (msg.type === 'call-end') handleCallEnd(msg);
+                else if (msg.type === 'cinema-start') { if (!iAmCinemaSharer) document.getElementById('cinema-status').innerText = (msg.senderName || 'A outra pessoa') + ' iniciou o Modo Cinema...'; }
+                else if (msg.type === 'cinema-end') { if (!iAmCinemaSharer) closeCinemaView(); }
+                return;
+            }
+
             if (msg.type === 'typing') {
                 if (activeChatId === targetId) {
                     const ind = document.getElementById('typing-indicator');
@@ -1239,10 +1281,63 @@
                 if(idx > -1) { chats[targetId][idx].type = 'deleted'; chats[targetId][idx].content = ''; if(activeChatId === targetId) renderMessages(); updateUI(); }
                 return;
             }
+            if (msg.type === 'reaction') {
+                const list = chats[targetId] || [];
+                const target = list.find(m => m.id === msg.targetMsgId);
+                if (target) {
+                    if (!target.reactions) target.reactions = {};
+                    const arr = target.reactions[msg.emoji] || [];
+                    const has = arr.includes(msg.senderId);
+                    target.reactions[msg.emoji] = msg.remove ? arr.filter(u => u !== msg.senderId) : (has ? arr : [...arr, msg.senderId]);
+                    if (!target.reactions[msg.emoji].length) delete target.reactions[msg.emoji];
+                    if (activeChatId === targetId) renderMessages();
+                }
+                return;
+            }
 
             if (!chats[targetId]) chats[targetId] = [];
             chats[targetId].push({ ...msg, isMe: false, unread: activeChatId !== targetId });
             if (activeChatId === targetId) renderMessages(); else updateUI();
+        }
+
+        let replyingTo = null;
+
+        function startReply(msgId) {
+            const m = (chats[activeChatId] || []).find(x => x.id === msgId);
+            if (!m || m.type === 'deleted') return;
+            replyingTo = { id: m.id, name: m.isMe ? 'Você' : (m.senderName || 'Alguém'), snippet: m.type === 'text' ? m.content.slice(0, 80) : ({image:'📷 Foto', audio:'🎤 Áudio', location:'📍 Localização'}[m.type] || 'Mensagem') };
+            document.getElementById('reply-preview-name').innerText = replyingTo.name;
+            document.getElementById('reply-preview-snippet').innerText = replyingTo.snippet;
+            document.getElementById('reply-preview').classList.remove('hidden');
+            document.getElementById('reply-preview').classList.add('flex');
+            document.getElementById('message-input').focus();
+        }
+        function cancelReply() {
+            replyingTo = null;
+            document.getElementById('reply-preview').classList.add('hidden');
+            document.getElementById('reply-preview').classList.remove('flex');
+        }
+
+        const QUICK_REACTIONS = ['👍','❤️','😂','😮','😢'];
+        let openReactionPickerId = null;
+        function toggleReactionPicker(msgId) {
+            openReactionPickerId = openReactionPickerId === msgId ? null : msgId;
+            renderMessages();
+        }
+        function reactToMessage(msgId, emoji) {
+            const list = chats[activeChatId] || [];
+            const m = list.find(x => x.id === msgId);
+            if (!m) return;
+            if (!m.reactions) m.reactions = {};
+            const mine = m.reactions[emoji] || [];
+            const has = mine.includes(myProfile.id);
+            m.reactions[emoji] = has ? mine.filter(u => u !== myProfile.id) : [...mine, myProfile.id];
+            if (!m.reactions[emoji].length) delete m.reactions[emoji];
+
+            const topic = groups[activeChatId] ? `${APP_TOPIC}/group/${activeChatId}` : `${APP_TOPIC}/msg/${activeChatId}`;
+            client.publish(topic, JSON.stringify({ type: 'reaction', senderId: myProfile.id, targetMsgId: msgId, emoji, remove: has }));
+            openReactionPickerId = null;
+            renderMessages();
         }
 
         function renderMessages() {
@@ -1260,13 +1355,32 @@
                 else if(m.type === 'image') html = `<img src="${m.content}" class="rounded-lg w-64 max-w-full cursor-pointer hover:opacity-90 bg-white" onclick="window.open('${m.content}')">`;
                 else if(m.type === 'audio') html = `<audio src="${m.content}" controls class="w-48 sm:w-64 max-w-full rounded-md shadow-sm"></audio>`;
                 else if(m.type === 'location') html = `<a href="https://maps.google.com/?q=${m.content}" target="_blank" class="flex items-center gap-2 font-bold underline hover:opacity-80 py-1">📍 Ver no Mapa</a>`;
-                
+
+                const replyBlock = m.replyTo ? `<div class="mb-1.5 pl-2 border-l-2 opacity-80 text-xs" style="border-color: currentColor"><p class="font-bold">${m.replyTo.name}</p><p class="truncate max-w-[200px]">${m.replyTo.snippet}</p></div>` : '';
+
+                const reactionsHtml = m.reactions && Object.keys(m.reactions).length ? `
+                    <div class="flex gap-1 flex-wrap mt-1">
+                        ${Object.entries(m.reactions).map(([emoji, users]) => `<span onclick="reactToMessage('${m.id}','${emoji}')" class="tap-btn text-[11px] bg-black/10 rounded-full px-1.5 py-0.5 cursor-pointer">${emoji} ${users.length}</span>`).join('')}
+                    </div>` : '';
+
+                const pickerHtml = openReactionPickerId === m.id ? `
+                    <div class="absolute -top-9 ${isMe ? 'right-0' : 'left-0'} bg-app-panel border border-app-border rounded-full shadow-lg flex gap-1 px-2 py-1 z-10">
+                        ${QUICK_REACTIONS.map(e => `<span onclick="reactToMessage('${m.id}','${e}')" class="tap-btn cursor-pointer hover:scale-125 transition text-lg">${e}</span>`).join('')}
+                    </div>` : '';
+
+                const actionsHtml = m.type !== 'deleted' ? `
+                    <div class="absolute -top-3 ${isMe ? '-left-14' : '-right-14'} hidden group-hover:flex gap-1 bg-app-panel border border-app-border rounded-full px-1.5 py-1 shadow">
+                        <button onclick="toggleReactionPicker('${m.id}')" class="tap-btn text-xs" title="Reagir">😊</button>
+                        <button onclick="startReply('${m.id}')" class="tap-btn text-xs" title="Responder">↩️</button>
+                    </div>` : '';
+
                 const deleteEvt = isMe && m.type !== 'deleted' ? `ondblclick="requestDeleteMessage('${m.id}')" title="Duplo clique para apagar"` : '';
 
                 c.innerHTML += `
                     <div class="flex w-full ${align} message-enter">
                         <div class="msg-bubble max-w-[80%] px-3 py-2 rounded-2xl ${bg} shadow-sm relative group" ${deleteEvt}>
-                            ${nameLabel}${html}
+                            ${pickerHtml}${actionsHtml}
+                            ${nameLabel}${replyBlock}${html}${reactionsHtml}
                             <div class="text-[9px] mt-1 text-right opacity-60 flex justify-end items-center gap-1">
                                 ${m.time} ${isMe ? '✓✓' : ''}
                             </div>
@@ -1465,6 +1579,809 @@
             client.subscribe(`${APP_TOPIC}/group/${gId}`);
             members.forEach(m => { if(m!==myProfile.id) client.publish(`${APP_TOPIC}/msg/${m}`, JSON.stringify({type:'group_invite', groupData:groups[gId]})); });
             closeModal('group-modal'); openChat(gId, true);
+        }
+    </script>
+
+    <!-- Player de Música Flutuante (persiste tocando em qualquer tela do app) -->
+    <div id="music-player" class="hidden fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
+        <div id="music-panel" class="hidden w-80 max-w-[85vw] bg-app-panel border border-app-border rounded-2xl shadow-2xl overflow-hidden origin-bottom-right">
+            <div id="music-cover" class="h-24 flex items-center justify-between px-4 relative cursor-grab" style="background: linear-gradient(135deg, var(--app-accent), #1e1b2e); touch-action: none;">
+                <div>
+                    <p id="music-genre-label" class="text-[10px] uppercase font-bold text-white/70 tracking-wide">Nenhuma música</p>
+                    <p id="music-track-name" class="text-white font-black text-lg leading-tight">Escolha uma faixa</p>
+                </div>
+                <div id="music-emoji" class="text-4xl">🎵</div>
+                <button onclick="toggleMusicPanel()" class="absolute top-2 right-2 text-white/70 hover:text-white text-sm tap-btn">✕</button>
+            </div>
+
+            <div class="flex items-center justify-center gap-1.5 px-4 pt-3" id="music-eq">
+                <span class="music-bar"></span><span class="music-bar"></span><span class="music-bar"></span><span class="music-bar"></span><span class="music-bar"></span>
+            </div>
+
+            <div class="px-4 pt-2">
+                <input type="range" id="music-progress" min="0" max="100" value="0" oninput="seekMusic(this.value)" class="w-full accent-blue-500 h-1">
+                <div class="flex justify-between text-[10px] text-app-text-muted mt-0.5">
+                    <span id="music-time-cur">0:00</span>
+                    <span id="music-time-total">--:--</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center gap-3 py-3">
+                <button onclick="toggleShuffle()" id="music-shuffle-btn" class="tap-btn text-lg text-app-text-muted" title="Aleatório">🔀</button>
+                <button onclick="prevTrack()" class="tap-btn text-2xl text-app-text" title="Anterior">⏮️</button>
+                <button onclick="togglePlayPause()" id="music-playpause-btn" class="tap-btn w-12 h-12 rounded-full flex items-center justify-center text-white text-xl shadow-lg" style="background-color: var(--app-accent)" title="Tocar/Pausar">▶️</button>
+                <button onclick="nextTrack()" class="tap-btn text-2xl text-app-text" title="Próxima">⏭️</button>
+                <button onclick="toggleRepeat()" id="music-repeat-btn" class="tap-btn text-lg text-app-text-muted" title="Repetir">🔁</button>
+            </div>
+
+            <div class="flex items-center gap-2 px-4 pb-3">
+                <span class="text-xs">🔉</span>
+                <input type="range" id="music-volume" min="0" max="100" value="50" oninput="setMusicVolume(this.value/100)" class="w-full accent-blue-500 h-1">
+            </div>
+
+            <label class="tap-btn flex items-center justify-center gap-2 mx-4 mb-3 bg-app-input rounded-lg py-2 text-xs text-app-text cursor-pointer hover:brightness-110">
+                💻 <span>Adicionar músicas do computador</span>
+                <input type="file" accept="audio/*" multiple class="hidden" onchange="handleMusicUpload(event)">
+            </label>
+
+            <div class="border-t border-app-border">
+                <p class="text-[10px] uppercase font-bold text-app-text-muted px-4 pt-2 pb-1">Playlist</p>
+                <div id="music-playlist" class="max-h-52 overflow-y-auto no-scrollbar px-2 pb-3"></div>
+            </div>
+        </div>
+
+        <button id="music-bubble" class="tap-btn w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl text-white cursor-grab" style="background: linear-gradient(135deg, var(--app-accent), #1e1b2e); touch-action: none;">
+            <span id="music-bubble-icon">🎵</span>
+        </button>
+    </div>
+
+    <!-- Banner de chamada recebida -->
+    <div id="incoming-call-banner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[70] bg-app-panel border border-app-border rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4">
+        <img id="incoming-call-avatar" src="" class="w-12 h-12 rounded-full object-cover bg-white animate-pulse">
+        <div>
+            <p class="font-bold text-app-text" id="incoming-call-name">Alguém</p>
+            <p class="text-xs text-app-text-muted">📞 Chamada de voz recebida...</p>
+        </div>
+        <button onclick="answerCall()" class="tap-btn w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center text-lg">✔️</button>
+        <button onclick="rejectCall()" class="tap-btn w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-lg">✕</button>
+    </div>
+
+    <!-- Barra de chamada ativa (persiste enquanto navega pelo app) -->
+    <div id="active-call-bar" class="hidden fixed bottom-4 left-4 z-40 bg-app-panel border border-app-border rounded-2xl shadow-2xl px-4 py-2.5 flex items-center gap-3">
+        <img id="call-peer-avatar" src="" class="w-9 h-9 rounded-full object-cover bg-white">
+        <div>
+            <p id="call-peer-name" class="text-xs font-bold text-app-text leading-tight">Fulano</p>
+            <p id="call-timer" class="text-[10px] text-app-text-muted">00:00</p>
+        </div>
+        <button onclick="toggleMute()" id="call-mute-btn" class="tap-btn w-8 h-8 rounded-full bg-app-input flex items-center justify-center" title="Mutar">🎤</button>
+        <button onclick="document.getElementById('cinema-file-input').click()" class="tap-btn w-8 h-8 rounded-full bg-app-input flex items-center justify-center" title="Modo Cinema">🎬</button>
+        <button onclick="endCall()" class="tap-btn w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center" title="Encerrar">📵</button>
+    </div>
+    <input type="file" id="cinema-file-input" accept="video/*" class="hidden" onchange="startCinemaShare(this)">
+
+    <!-- Modo Cinema -->
+    <div id="cinema-modal" class="modal-overlay fixed inset-0 bg-black/95 z-[55] hidden items-center justify-center p-3">
+        <div class="modal-card w-full max-w-4xl flex flex-col gap-3">
+            <div class="flex items-center justify-between text-white px-1">
+                <p class="font-bold flex items-center gap-2">🎬 <span id="cinema-title">Modo Cinema</span></p>
+                <div class="flex items-center gap-3">
+                    <span id="cinema-status" class="text-xs text-app-text-muted"></span>
+                    <button onclick="closeCinemaView()" class="tap-btn text-white/70 hover:text-white text-xl">✕</button>
+                </div>
+            </div>
+            <div class="bg-black rounded-xl overflow-hidden flex items-center justify-center aspect-video">
+                <video id="cinema-video" controls autoplay playsinline class="w-full h-full"></video>
+            </div>
+            <div id="cinema-sender-controls" class="hidden justify-center">
+                <button onclick="stopCinemaShare()" class="tap-btn px-5 py-2 bg-red-500 text-white rounded-lg font-bold text-sm">Parar de Compartilhar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Áudio remoto da chamada de voz (oculto) -->
+    <audio id="remote-voice-audio" autoplay></audio>
+
+    <script>
+        // ===================================================================
+        // PLAYER DE MÚSICA — toca em segundo plano enquanto o usuário conversa.
+        // Duas fontes de faixas:
+        // 1) "Gerado": motor de música proceduralmente sintetizado via Web Audio
+        //    API (sem arquivos externos, sem internet, sem direitos autorais) —
+        //    dá muitas "músicas" (12 faixas) prontas para uso imediato.
+        // 2) "Minhas Músicas": arquivos de áudio do próprio computador do
+        //    usuário, adicionados via upload (respeita direitos autorais, pois
+        //    é o próprio usuário fornecendo o conteúdo que já possui).
+        // ===================================================================
+
+        const SCALES = {
+            minor: [0,2,3,5,7,8,10], major: [0,2,4,5,7,9,11], dorian: [0,2,3,5,7,9,10],
+            pentaMinor: [0,3,5,7,10], pentaMajor: [0,2,4,7,9], phrygian: [0,1,3,5,7,8,10],
+        };
+        function chord(root, size) { const out=[]; for(let i=0;i<(size||3);i++) out.push(root+i*2); return out; }
+
+        const GENERATED_TRACKS = [
+            { id:'g1', name:'Tarde Preguiçosa', genre:'Lo-fi Chill', emoji:'🎧', bpm:78, scale:SCALES.pentaMinor, root:130.81, beatsPerChord:4, progression:[0,2,3,1].map(r=>chord(r)), padWave:'triangle', padFilterFreq:900, arp:true, arpSteps:8, arpWave:'sine', bass:true, hats:true, kick:false },
+            { id:'g2', name:'Café das Cinco', genre:'Jazz Café', emoji:'☕', bpm:92, scale:SCALES.dorian, root:146.83, beatsPerChord:4, progression:[0,3,4,0].map(r=>chord(r,4)), padWave:'sine', padFilterFreq:1100, arp:true, arpSteps:8, arpWave:'triangle', bass:true, hats:true, kick:false },
+            { id:'g3', name:'Nebulosa', genre:'Ambient Space', emoji:'🌌', bpm:50, scale:SCALES.major, root:98, beatsPerChord:8, progression:[0,5,3,4].map(r=>chord(r,3)), padWave:'sine', padFilterFreq:600, arp:false, bass:false, hats:false, kick:false },
+            { id:'g4', name:'Rodovia Neon', genre:'Synthwave', emoji:'🌆', bpm:100, scale:SCALES.minor, root:110, beatsPerChord:4, progression:[0,5,2,6].map(r=>chord(r)), padWave:'sawtooth', padFilterFreq:1500, arp:true, arpSteps:16, arpWave:'sawtooth', bass:true, hats:true, kick:true, kickPattern:[0,1,2,3] },
+            { id:'g5', name:'Primeiro Sol', genre:'Acústico Manhã', emoji:'☀️', bpm:85, scale:SCALES.major, root:174.61, beatsPerChord:4, progression:[0,4,5,3].map(r=>chord(r)), padWave:'triangle', padFilterFreq:1000, arp:true, arpSteps:6, arpWave:'triangle', bass:false, hats:false, kick:false },
+            { id:'g6', name:'Respiração Profunda', genre:'Deep Focus', emoji:'🧘', bpm:40, scale:SCALES.pentaMajor, root:87.31, beatsPerChord:8, progression:[0,2].map(r=>chord(r,3)), padWave:'sine', padFilterFreq:500, arp:false, bass:false, hats:false, kick:false },
+            { id:'g7', name:'Chuva na Janela', genre:'Piano Noturno', emoji:'🌧️', bpm:70, scale:SCALES.minor, root:130.81, beatsPerChord:4, progression:[0,6,5,4].map(r=>chord(r)), padWave:'sine', padFilterFreq:800, arp:true, arpSteps:8, arpWave:'triangle', bass:true, hats:false, kick:false },
+            { id:'g8', name:'Pixel Quest', genre:'Retro Game', emoji:'🎮', bpm:132, scale:SCALES.pentaMajor, root:196, beatsPerChord:2, progression:[0,1,2,1].map(r=>chord(r,3)), padWave:'square', padFilterFreq:2000, arp:true, arpSteps:8, arpWave:'square', bass:true, hats:true, kick:true, kickPattern:[0] },
+            { id:'g9', name:'Taças de Cristal', genre:'Meditação', emoji:'🎐', bpm:30, scale:SCALES.pentaMinor, root:65.41, beatsPerChord:10, progression:[0,1].map(r=>chord(r,3)), padWave:'sine', padFilterFreq:450, arp:false, bass:false, hats:false, kick:false },
+            { id:'g10', name:'Direção Noturna', genre:'Night Drive', emoji:'🚗', bpm:112, scale:SCALES.minor, root:123.47, beatsPerChord:4, progression:[0,3,5,4].map(r=>chord(r)), padWave:'sawtooth', padFilterFreq:1300, arp:true, arpSteps:16, arpWave:'sine', bass:true, hats:true, kick:true, kickPattern:[0,2] },
+            { id:'g11', name:'Cordas ao Entardecer', genre:'Chill Guitar', emoji:'🎸', bpm:80, scale:SCALES.major, root:164.81, beatsPerChord:4, progression:[0,5,3,4].map(r=>chord(r)), padWave:'triangle', padFilterFreq:1100, arp:true, arpSteps:8, arpWave:'triangle', bass:false, hats:false, kick:false },
+            { id:'g12', name:'Sala Cyber', genre:'Cyber Lounge', emoji:'🤖', bpm:95, scale:SCALES.phrygian, root:116.54, beatsPerChord:4, progression:[0,2,4,1].map(r=>chord(r)), padWave:'sawtooth', padFilterFreq:1000, arp:true, arpSteps:8, arpWave:'square', bass:true, hats:true, kick:false },
+        ];
+
+        let musicAudioCtx = null, musicMasterGain = null, musicAnalyser = null, musicNoiseBuffer = null;
+        let fileAudioEl = null, fileSourceNode = null;
+        let musicPlaylist = [];
+        let musicCurrentIndex = -1;
+        let musicIsPlaying = false;
+        let musicShuffle = false;
+        let musicRepeat = 'all'; // 'off' | 'all' | 'one'
+        let genEngineTimer = null;
+        let genEngineTrack = null;
+        let genEngineChordIdx = 0;
+        let genEngineStartTime = 0;
+        let eqRafId = null;
+
+        function ensureMusicContext() {
+            if (musicAudioCtx) return;
+            musicAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            musicMasterGain = musicAudioCtx.createGain();
+            const savedVol = parseFloat(localStorage.getItem('geochat_music_vol') || '0.5');
+            musicMasterGain.gain.value = savedVol;
+            document.getElementById('music-volume').value = Math.round(savedVol * 100);
+
+            const dry = musicAudioCtx.createGain(); dry.gain.value = 0.85;
+            const revGain = musicAudioCtx.createGain(); revGain.gain.value = 0.3;
+            const conv = musicAudioCtx.createConvolver();
+            conv.buffer = buildImpulse(musicAudioCtx, 2.2, 2.4);
+            musicMasterGain.connect(dry).connect(musicAudioCtx.destination);
+            musicMasterGain.connect(conv).connect(revGain).connect(musicAudioCtx.destination);
+
+            musicAnalyser = musicAudioCtx.createAnalyser();
+            musicAnalyser.fftSize = 64;
+            musicMasterGain.connect(musicAnalyser);
+
+            fileAudioEl = new Audio();
+            fileAudioEl.crossOrigin = 'anonymous';
+            fileSourceNode = musicAudioCtx.createMediaElementSource(fileAudioEl);
+            fileSourceNode.connect(musicMasterGain);
+            fileAudioEl.addEventListener('timeupdate', updateProgressUI);
+            fileAudioEl.addEventListener('loadedmetadata', updateProgressUI);
+            fileAudioEl.addEventListener('ended', () => handleTrackEnded());
+        }
+
+        function buildImpulse(ctx, duration, decay) {
+            const rate = ctx.sampleRate, length = Math.floor(rate * duration);
+            const buf = ctx.createBuffer(2, length, rate);
+            for (let ch = 0; ch < 2; ch++) {
+                const d = buf.getChannelData(ch);
+                for (let i = 0; i < length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+            }
+            return buf;
+        }
+        function getNoiseBuffer() {
+            if (musicNoiseBuffer) return musicNoiseBuffer;
+            const len = musicAudioCtx.sampleRate;
+            musicNoiseBuffer = musicAudioCtx.createBuffer(1, len, musicAudioCtx.sampleRate);
+            const d = musicNoiseBuffer.getChannelData(0);
+            for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+            return musicNoiseBuffer;
+        }
+
+        function degreeToFreq(track, idx) {
+            const len = track.scale.length;
+            const octave = Math.floor(idx / len);
+            const semitone = track.scale[((idx % len) + len) % len] + octave * 12;
+            return track.root * Math.pow(2, semitone / 12);
+        }
+
+        function playPad(freqs, dur, track) {
+            const t0 = musicAudioCtx.currentTime;
+            freqs.forEach(f => {
+                const osc = musicAudioCtx.createOscillator();
+                osc.type = track.padWave; osc.frequency.value = f;
+                const filt = musicAudioCtx.createBiquadFilter();
+                filt.type = 'lowpass'; filt.frequency.value = track.padFilterFreq || 1200;
+                const g = musicAudioCtx.createGain();
+                g.gain.setValueAtTime(0.0001, t0);
+                g.gain.linearRampToValueAtTime(0.11, t0 + dur * 0.3);
+                g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+                osc.connect(filt).connect(g).connect(musicMasterGain);
+                osc.start(t0); osc.stop(t0 + dur + 0.05);
+            });
+        }
+        function playBass(freq, dur) {
+            const t0 = musicAudioCtx.currentTime;
+            const osc = musicAudioCtx.createOscillator();
+            osc.type = 'sine'; osc.frequency.value = freq / 2;
+            const g = musicAudioCtx.createGain();
+            g.gain.setValueAtTime(0.0001, t0);
+            g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.05);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * 0.9);
+            osc.connect(g).connect(musicMasterGain);
+            osc.start(t0); osc.stop(t0 + dur);
+        }
+        function playPluck(freq, dur, wave) {
+            const t0 = musicAudioCtx.currentTime;
+            const osc = musicAudioCtx.createOscillator();
+            osc.type = wave || 'triangle'; osc.frequency.value = freq;
+            const g = musicAudioCtx.createGain();
+            g.gain.setValueAtTime(0.0001, t0);
+            g.gain.exponentialRampToValueAtTime(0.15, t0 + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            osc.connect(g).connect(musicMasterGain);
+            osc.start(t0); osc.stop(t0 + dur + 0.02);
+        }
+        function playHat() {
+            const t0 = musicAudioCtx.currentTime;
+            const src = musicAudioCtx.createBufferSource();
+            src.buffer = getNoiseBuffer();
+            const filt = musicAudioCtx.createBiquadFilter();
+            filt.type = 'highpass'; filt.frequency.value = 7000;
+            const g = musicAudioCtx.createGain();
+            g.gain.setValueAtTime(0.05, t0);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05);
+            src.connect(filt).connect(g).connect(musicMasterGain);
+            src.start(t0); src.stop(t0 + 0.06);
+        }
+        function playKick() {
+            const t0 = musicAudioCtx.currentTime;
+            const osc = musicAudioCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(120, t0);
+            osc.frequency.exponentialRampToValueAtTime(40, t0 + 0.15);
+            const g = musicAudioCtx.createGain();
+            g.gain.setValueAtTime(0.3, t0);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+            osc.connect(g).connect(musicMasterGain);
+            osc.start(t0); osc.stop(t0 + 0.25);
+        }
+
+        function scheduleGeneratedBar() {
+            if (!musicIsPlaying || !genEngineTrack) return;
+            const track = genEngineTrack;
+            const beatDur = 60 / track.bpm;
+            const barDur = beatDur * track.beatsPerChord;
+            const degrees = track.progression[genEngineChordIdx % track.progression.length];
+            const freqs = degrees.map(d => degreeToFreq(track, d));
+
+            playPad(freqs, barDur * 1.05, track);
+            if (track.bass) playBass(freqs[0], barDur);
+            if (track.arp) {
+                const steps = track.arpSteps || 8;
+                const stepDur = barDur / steps;
+                for (let s = 0; s < steps; s++) {
+                    const f = freqs[s % freqs.length] * (Math.floor(s / freqs.length) % 2 === 1 ? 2 : 1);
+                    setTimeout(() => { if (musicIsPlaying) playPluck(f, stepDur * 0.9, track.arpWave); }, s * stepDur * 1000);
+                }
+            }
+            if (track.hats) {
+                const steps = 8, stepDur = barDur / steps;
+                for (let s = 0; s < steps; s++) setTimeout(() => { if (musicIsPlaying) playHat(); }, s * stepDur * 1000);
+            }
+            if (track.kick) {
+                const hits = track.kickPattern || [0];
+                hits.forEach(h => setTimeout(() => { if (musicIsPlaying) playKick(); }, h * beatDur * 1000));
+            }
+
+            genEngineChordIdx++;
+            genEngineTimer = setTimeout(scheduleGeneratedBar, barDur * 1000);
+        }
+
+        function startGeneratedTrack(track) {
+            stopGeneratedTrack();
+            ensureMusicContext();
+            if (musicAudioCtx.state === 'suspended') musicAudioCtx.resume();
+            genEngineTrack = track;
+            genEngineChordIdx = 0;
+            genEngineStartTime = Date.now();
+            musicIsPlaying = true;
+            scheduleGeneratedBar();
+        }
+        function stopGeneratedTrack() {
+            if (genEngineTimer) clearTimeout(genEngineTimer);
+            genEngineTimer = null; genEngineTrack = null;
+        }
+
+        function initMusicPlaylist() {
+            if (musicPlaylist.length) return; // já inicializado
+            musicPlaylist = GENERATED_TRACKS.map(cfg => ({ type: 'generated', id: cfg.id, name: cfg.name, genre: cfg.genre, emoji: cfg.emoji, config: cfg }));
+            renderMusicPlaylist();
+        }
+
+        function renderMusicPlaylist() {
+            const el = document.getElementById('music-playlist');
+            el.innerHTML = musicPlaylist.map((t, i) => `
+                <div onclick="selectTrack(${i})" class="music-playlist-item tap-btn flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer ${i === musicCurrentIndex ? 'playing' : ''}">
+                    <span class="text-xl">${t.emoji || '🎵'}</span>
+                    <div class="flex-1 overflow-hidden">
+                        <p class="text-xs font-bold text-app-text truncate">${t.name}</p>
+                        <p class="text-[10px] text-app-text-muted truncate">${t.genre}</p>
+                    </div>
+                </div>`).join('');
+        }
+
+        function toggleMusicPanel() {
+            const panel = document.getElementById('music-panel');
+            const willOpen = panel.classList.contains('hidden');
+            if (willOpen) { panel.classList.remove('hidden'); requestAnimationFrame(() => panel.classList.add('is-open')); }
+            else { panel.classList.remove('is-open'); setTimeout(() => panel.classList.add('hidden'), 220); }
+        }
+
+        // ===== Arrastar o botão/widget flutuante para qualquer lugar da tela =====
+        (function setupMusicDrag() {
+            const container = document.getElementById('music-player');
+            const bubbleHandle = document.getElementById('music-bubble');
+            const panelHandle = document.getElementById('music-cover');
+
+            function lockToPixelPosition() {
+                const rect = container.getBoundingClientRect();
+                container.style.left = rect.left + 'px';
+                container.style.top = rect.top + 'px';
+                container.style.right = 'auto';
+                container.style.bottom = 'auto';
+            }
+
+            function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
+
+            function applyPosition(left, top, animated) {
+                const rect = container.getBoundingClientRect();
+                const maxLeft = Math.max(4, window.innerWidth - rect.width - 4);
+                const maxTop = Math.max(4, window.innerHeight - rect.height - 4);
+                left = clamp(left, 4, maxLeft);
+                top = clamp(top, 4, maxTop);
+                container.classList.toggle('dragging', !animated);
+                container.style.left = left + 'px';
+                container.style.top = top + 'px';
+                container.style.right = 'auto';
+                container.style.bottom = 'auto';
+            }
+
+            function savePlayerPosition() {
+                const rect = container.getBoundingClientRect();
+                const leftFrac = rect.left / window.innerWidth;
+                const topFrac = rect.top / window.innerHeight;
+                try { localStorage.setItem('geochat_player_pos', JSON.stringify({ leftFrac, topFrac })); } catch (e) {}
+            }
+
+            window.restorePlayerPosition = function() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem('geochat_player_pos') || 'null');
+                    if (!saved) return;
+                    applyPosition(saved.leftFrac * window.innerWidth, saved.topFrac * window.innerHeight, true);
+                } catch (e) {}
+            };
+
+            // Torna qualquer "alça" (o balão fechado ou o cabeçalho do painel aberto) arrastável.
+            // onTap roda quando foi um toque/clique real (sem arrastar); ignora cliques em
+            // elementos filhos interativos da própria alça (ex: o botão ✕ do cabeçalho).
+            function makeDraggable(handleEl, onTap) {
+                let dragging = false, moved = false;
+                let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+                let pointerId = null;
+
+                handleEl.addEventListener('pointerdown', (e) => {
+                    const interactive = e.target.closest('button, input, a');
+                    if (interactive && interactive !== handleEl) return; // ignora só controles internos (ex: botão ✕), não a própria alça
+                    dragging = true; moved = false; pointerId = e.pointerId;
+                    lockToPixelPosition();
+                    const rect = container.getBoundingClientRect();
+                    startX = e.clientX; startY = e.clientY;
+                    startLeft = rect.left; startTop = rect.top;
+                    container.classList.add('dragging');
+                    handleEl.setPointerCapture(e.pointerId);
+                });
+
+                handleEl.addEventListener('pointermove', (e) => {
+                    if (!dragging || e.pointerId !== pointerId) return;
+                    const dx = e.clientX - startX, dy = e.clientY - startY;
+                    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+                    if (!moved) return;
+                    applyPosition(startLeft + dx, startTop + dy, false);
+                });
+
+                function endDrag(e) {
+                    if (!dragging || (e && e.pointerId !== pointerId)) return;
+                    dragging = false;
+                    container.classList.remove('dragging');
+                    if (moved) savePlayerPosition();
+                    else if (onTap) onTap();
+                }
+                handleEl.addEventListener('pointerup', endDrag);
+                handleEl.addEventListener('pointercancel', endDrag);
+            }
+
+            makeDraggable(bubbleHandle, toggleMusicPanel);
+            makeDraggable(panelHandle, null);
+
+            window.addEventListener('resize', () => {
+                if (container.style.left && container.style.left !== '') applyPosition(parseFloat(container.style.left), parseFloat(container.style.top), true);
+            });
+        })();
+
+        function selectTrack(index) {
+            if (index < 0 || index >= musicPlaylist.length) return;
+            musicCurrentIndex = index;
+            playCurrentTrack();
+        }
+
+        function playCurrentTrack() {
+            const track = musicPlaylist[musicCurrentIndex];
+            if (!track) return;
+            ensureMusicContext();
+            if (musicAudioCtx.state === 'suspended') musicAudioCtx.resume();
+
+            if (track.type === 'file') {
+                stopGeneratedTrack();
+                fileAudioEl.src = track.url;
+                fileAudioEl.play();
+                musicIsPlaying = true;
+                document.getElementById('music-progress').max = 1000;
+            } else {
+                fileAudioEl.pause();
+                startGeneratedTrack(track.config);
+                document.getElementById('music-progress').value = 0;
+            }
+
+            document.getElementById('music-genre-label').innerText = track.genre;
+            document.getElementById('music-track-name').innerText = track.name;
+            document.getElementById('music-emoji').innerText = track.emoji || '🎵';
+            document.getElementById('music-time-total').innerText = track.type === 'file' ? '--:--' : '∞';
+            document.getElementById('music-bubble-icon').classList.add('spinning');
+            document.getElementById('music-playpause-btn').innerText = '⏸️';
+            renderMusicPlaylist();
+            startEqLoop();
+        }
+
+        function togglePlayPause() {
+            if (musicCurrentIndex === -1) { selectTrack(0); return; }
+            const track = musicPlaylist[musicCurrentIndex];
+            if (musicIsPlaying) {
+                musicIsPlaying = false;
+                if (track.type === 'file') fileAudioEl.pause(); else stopGeneratedTrack();
+                document.getElementById('music-bubble-icon').classList.remove('spinning');
+                document.getElementById('music-playpause-btn').innerText = '▶️';
+            } else {
+                musicIsPlaying = true;
+                if (track.type === 'file') fileAudioEl.play(); else startGeneratedTrack(track.config);
+                document.getElementById('music-bubble-icon').classList.add('spinning');
+                document.getElementById('music-playpause-btn').innerText = '⏸️';
+                startEqLoop();
+            }
+        }
+
+        function nextTrack() {
+            if (!musicPlaylist.length) return;
+            let idx;
+            if (musicShuffle) { do { idx = Math.floor(Math.random() * musicPlaylist.length); } while (idx === musicCurrentIndex && musicPlaylist.length > 1); }
+            else idx = (musicCurrentIndex + 1) % musicPlaylist.length;
+            selectTrack(idx);
+        }
+        function prevTrack() {
+            if (!musicPlaylist.length) return;
+            const idx = (musicCurrentIndex - 1 + musicPlaylist.length) % musicPlaylist.length;
+            selectTrack(idx);
+        }
+        function handleTrackEnded() {
+            if (musicRepeat === 'one') { playCurrentTrack(); return; }
+            if (musicRepeat === 'off' && musicCurrentIndex === musicPlaylist.length - 1) { musicIsPlaying = false; return; }
+            nextTrack();
+        }
+        function toggleShuffle() {
+            musicShuffle = !musicShuffle;
+            document.getElementById('music-shuffle-btn').style.color = musicShuffle ? 'var(--app-accent)' : '';
+        }
+        function toggleRepeat() {
+            musicRepeat = musicRepeat === 'off' ? 'all' : musicRepeat === 'all' ? 'one' : 'off';
+            const btn = document.getElementById('music-repeat-btn');
+            btn.innerText = musicRepeat === 'one' ? '🔂' : '🔁';
+            btn.style.color = musicRepeat === 'off' ? '' : 'var(--app-accent)';
+        }
+        function setMusicVolume(v) {
+            ensureMusicContext();
+            musicMasterGain.gain.value = v;
+            try { localStorage.setItem('geochat_music_vol', v); } catch(e) {}
+        }
+        function seekMusic(val) {
+            const track = musicPlaylist[musicCurrentIndex];
+            if (track && track.type === 'file' && fileAudioEl.duration) {
+                fileAudioEl.currentTime = (val / 1000) * fileAudioEl.duration;
+            }
+        }
+        function updateProgressUI() {
+            const track = musicPlaylist[musicCurrentIndex];
+            if (!track || track.type !== 'file') return;
+            const cur = fileAudioEl.currentTime || 0, dur = fileAudioEl.duration || 0;
+            document.getElementById('music-progress').value = dur ? (cur / dur) * 1000 : 0;
+            document.getElementById('music-time-cur').innerText = fmtTime(cur);
+            document.getElementById('music-time-total').innerText = dur ? fmtTime(dur) : '--:--';
+        }
+        function fmtTime(s) { const m = Math.floor(s / 60), r = Math.floor(s % 60); return `${m}:${r.toString().padStart(2, '0')}`; }
+
+        function handleMusicUpload(e) {
+            const files = Array.from(e.target.files || []);
+            if (!files.length) return;
+            files.forEach(file => {
+                const url = URL.createObjectURL(file);
+                musicPlaylist.push({ type: 'file', id: 'f' + Date.now() + Math.random(), name: file.name.replace(/\.[^/.]+$/, ''), genre: 'Minhas Músicas', emoji: '💿', url });
+            });
+            renderMusicPlaylist();
+            e.target.value = '';
+        }
+
+        function startEqLoop() {
+            if (eqRafId) return;
+            const bars = document.querySelectorAll('#music-eq .music-bar');
+            const data = new Uint8Array(32);
+            function loop() {
+                if (!musicIsPlaying || document.getElementById('music-panel').classList.contains('hidden')) { eqRafId = null; bars.forEach(b => b.style.height = '6px'); return; }
+                musicAnalyser.getByteFrequencyData(data);
+                bars.forEach((b, i) => {
+                    const v = data[i * 4] || 0;
+                    b.style.height = Math.max(6, (v / 255) * 34) + 'px';
+                });
+                eqRafId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+    </script>
+
+    <script>
+        // ===================================================================
+        // CHAMADA DE VOZ (WebRTC) + MODO CINEMA
+        // A sinalização (troca de offer/answer/ICE) usa o mesmo canal MQTT já
+        // existente no app — publicando direto no tópico pessoal do outro
+        // usuário, sem depender de servidor próprio. A conexão de mídia em si
+        // (voz e vídeo) é P2P via WebRTC, usando um servidor STUN público
+        // apenas para descobrir o caminho de rede.
+        //
+        // Limitação honesta: sem um servidor TURN de retransmissão (que exige
+        // infraestrutura própria paga), a chamada funciona bem na mesma rede
+        // Wi-Fi ou na maioria das redes domésticas, mas pode falhar atrás de
+        // NATs simétricos rígidos (comuns em certas redes corporativas/4G).
+        //
+        // "Modo Cinema" = a pessoa que compartilha escolhe um vídeo do próprio
+        // computador; capturamos o fluxo desse <video> (captureStream) e
+        // enviamos como uma faixa extra dentro da MESMA chamada — quem assiste
+        // recebe o vídeo ao vivo enquanto os dois continuam se ouvindo pelo
+        // microfone normalmente.
+        // ===================================================================
+
+        const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+        let pc = null;
+        let currentCallId = null;
+        let callPeerId = null;
+        let callState = 'idle'; // idle | calling | ringing | active
+        let localMicStream = null;
+        let micAudioSender = null;
+        let remoteMicStreamId = null;
+        let cinemaLocalStream = null;
+        let cinemaVideoSenders = [];
+        let cinemaRemoteStream = null;
+        let iAmCinemaSharer = false;
+        let callTimerInterval = null;
+        let callStartTime = 0;
+        let pendingIce = [];
+        let incomingOfferMsg = null;
+
+        function sendSignal(peerId, type, data = {}) {
+            client.publish(`${APP_TOPIC}/msg/${peerId}`, JSON.stringify({ type, senderId: myProfile.id, senderName: myProfile.name, callId: currentCallId, ...data }));
+        }
+
+        function createPeerConnection() {
+            const conn = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+            conn.onicecandidate = (e) => { if (e.candidate) sendSignal(callPeerId, 'call-ice', { candidate: e.candidate }); };
+            conn.ontrack = (e) => {
+                const streamId = e.streams[0] ? e.streams[0].id : 'unknown';
+                if (remoteMicStreamId === null) {
+                    remoteMicStreamId = streamId;
+                    document.getElementById('remote-voice-audio').srcObject = e.streams[0];
+                } else if (streamId !== remoteMicStreamId) {
+                    if (!cinemaRemoteStream || cinemaRemoteStream.id !== streamId) {
+                        cinemaRemoteStream = new MediaStream();
+                        cinemaRemoteStream.streamKey = streamId;
+                    }
+                    cinemaRemoteStream.addTrack(e.track);
+                    document.getElementById('cinema-video').srcObject = cinemaRemoteStream;
+                    if (!iAmCinemaSharer) openCinemaView(false);
+                    e.track.addEventListener('ended', () => { if (!iAmCinemaSharer) closeCinemaView(); });
+                }
+            };
+            conn.onconnectionstatechange = () => { if (['failed','disconnected','closed'].includes(conn.connectionState) && callState !== 'idle') endCall(true); };
+            return conn;
+        }
+
+        async function getMic() {
+            if (localMicStream) return localMicStream;
+            localMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            return localMicStream;
+        }
+
+        async function startVoiceCall() {
+            if (callState !== 'idle') return alert('Você já está em uma chamada.');
+            if (groups[activeChatId]) return alert('Chamadas de voz funcionam apenas em conversas individuais.');
+            const peer = users.get(activeChatId);
+            if (!peer) return;
+            try {
+                callPeerId = activeChatId;
+                currentCallId = 'call_' + Date.now();
+                callState = 'calling';
+                pc = createPeerConnection();
+                const mic = await getMic();
+                micAudioSender = pc.addTrack(mic.getAudioTracks()[0], mic);
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                sendSignal(callPeerId, 'call-offer', { sdp: offer, callerName: myProfile.name, callerAvatar: myProfile.avatar });
+                showCallBar(peer.name, peer.avatar, 'Chamando...');
+            } catch (err) {
+                alert('Não foi possível acessar o microfone: ' + err.message);
+                resetCallState();
+            }
+        }
+
+        function handleIncomingCallOffer(msg) {
+            if (callState !== 'idle') { sendSignal(msg.senderId, 'call-end', {}); return; } // já ocupado
+            incomingOfferMsg = msg;
+            callPeerId = msg.senderId;
+            currentCallId = msg.callId;
+            callState = 'ringing';
+            document.getElementById('incoming-call-name').innerText = msg.senderName || 'Alguém';
+            document.getElementById('incoming-call-avatar').src = msg.callerAvatar || '';
+            document.getElementById('incoming-call-banner').classList.remove('hidden');
+            document.getElementById('incoming-call-banner').classList.add('flex');
+        }
+
+        async function answerCall() {
+            const msg = incomingOfferMsg;
+            document.getElementById('incoming-call-banner').classList.add('hidden');
+            document.getElementById('incoming-call-banner').classList.remove('flex');
+            try {
+                pc = createPeerConnection();
+                const mic = await getMic();
+                micAudioSender = pc.addTrack(mic.getAudioTracks()[0], mic);
+                await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+                pendingIce.forEach(c => pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));
+                pendingIce = [];
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                sendSignal(callPeerId, 'call-answer', { sdp: answer });
+                callState = 'active';
+                const peer = users.get(callPeerId);
+                showCallBar(peer ? peer.name : msg.senderName, peer ? peer.avatar : msg.callerAvatar, null);
+                startCallTimer();
+            } catch (err) {
+                alert('Erro ao atender: ' + err.message);
+                rejectCall();
+            }
+        }
+
+        function rejectCall() {
+            document.getElementById('incoming-call-banner').classList.add('hidden');
+            document.getElementById('incoming-call-banner').classList.remove('flex');
+            if (callPeerId) sendSignal(callPeerId, 'call-end', {});
+            resetCallState();
+        }
+
+        function handleCallAnswer(msg) {
+            if (callState !== 'calling' || msg.callId !== currentCallId) return;
+            pc.setRemoteDescription(new RTCSessionDescription(msg.sdp)).then(() => {
+                pendingIce.forEach(c => pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));
+                pendingIce = [];
+                callState = 'active';
+                document.getElementById('call-timer').innerText = '00:00';
+                startCallTimer();
+            });
+        }
+
+        function handleCallIce(msg) {
+            if (msg.callId !== currentCallId) return;
+            if (pc && pc.remoteDescription && pc.remoteDescription.type) pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(()=>{});
+            else pendingIce.push(msg.candidate);
+        }
+
+        function handleCallEnd(msg) {
+            if (msg.callId !== currentCallId && callState !== 'ringing') return;
+            document.getElementById('incoming-call-banner').classList.add('hidden');
+            document.getElementById('incoming-call-banner').classList.remove('flex');
+            resetCallState();
+        }
+
+        function endCall() {
+            if (callPeerId) sendSignal(callPeerId, 'call-end', {});
+            resetCallState();
+        }
+
+        function resetCallState() {
+            if (pc) { pc.close(); pc = null; }
+            if (localMicStream) { localMicStream.getTracks().forEach(t => t.stop()); localMicStream = null; }
+            if (cinemaLocalStream) { cinemaLocalStream.getTracks().forEach(t => t.stop()); cinemaLocalStream = null; }
+            callState = 'idle'; callPeerId = null; currentCallId = null; remoteMicStreamId = null;
+            cinemaRemoteStream = null; iAmCinemaSharer = false; cinemaVideoSenders = [];
+            incomingOfferMsg = null; pendingIce = [];
+            clearInterval(callTimerInterval);
+            document.getElementById('active-call-bar').classList.add('hidden');
+            document.getElementById('active-call-bar').classList.remove('flex');
+            document.getElementById('cinema-modal').classList.remove('is-open');
+            setTimeout(() => document.getElementById('cinema-modal').classList.add('hidden'), 220);
+            document.getElementById('cinema-video').srcObject = null;
+            const cv = document.getElementById('cinema-video'); if (cv.src) { cv.pause(); cv.removeAttribute('src'); cv.load(); }
+        }
+
+        function showCallBar(name, avatar, statusText) {
+            document.getElementById('call-peer-name').innerText = name || 'Chamada';
+            document.getElementById('call-peer-avatar').src = avatar || '';
+            document.getElementById('call-timer').innerText = statusText || '00:00';
+            document.getElementById('active-call-bar').classList.remove('hidden');
+            document.getElementById('active-call-bar').classList.add('flex');
+        }
+        function startCallTimer() {
+            callStartTime = Date.now();
+            clearInterval(callTimerInterval);
+            callTimerInterval = setInterval(() => {
+                const s = Math.floor((Date.now() - callStartTime) / 1000);
+                document.getElementById('call-timer').innerText = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+            }, 1000);
+        }
+        function toggleMute() {
+            if (!localMicStream) return;
+            const track = localMicStream.getAudioTracks()[0];
+            track.enabled = !track.enabled;
+            document.getElementById('call-mute-btn').innerText = track.enabled ? '🎤' : '🔇';
+        }
+
+        // ---------- Modo Cinema ----------
+        function openCinemaView(isSender) {
+            document.getElementById('cinema-sender-controls').classList.toggle('hidden', !isSender);
+            document.getElementById('cinema-sender-controls').classList.toggle('flex', isSender);
+            document.getElementById('cinema-status').innerText = isSender ? 'Você está transmitindo' : 'Assistindo com ' + document.getElementById('call-peer-name').innerText;
+            const modal = document.getElementById('cinema-modal');
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add('is-open')));
+        }
+        function closeCinemaView() {
+            const modal = document.getElementById('cinema-modal');
+            modal.classList.remove('is-open');
+            setTimeout(() => modal.classList.add('hidden'), 220);
+        }
+
+        async function startCinemaShare(inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            if (callState !== 'active') return alert('Entre em uma chamada de voz antes de iniciar o Modo Cinema.');
+            const video = document.getElementById('cinema-video');
+            video.srcObject = null;
+            video.src = URL.createObjectURL(file);
+            video.muted = false;
+            iAmCinemaSharer = true;
+            openCinemaView(true);
+            sendSignal(callPeerId, 'cinema-start', {});
+
+            video.onloadedmetadata = async () => {
+                try {
+                    await video.play();
+                    const stream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
+                    cinemaLocalStream = stream;
+                    cinemaVideoSenders = stream.getTracks().map(track => pc.addTrack(track, stream));
+                } catch (e) { alert('Não foi possível capturar o vídeo neste navegador.'); }
+            };
+            inputEl.value = '';
+        }
+
+        function stopCinemaShare() {
+            cinemaVideoSenders.forEach(sender => { try { pc.removeTrack(sender); } catch(e) {} });
+            cinemaVideoSenders = [];
+            if (cinemaLocalStream) { cinemaLocalStream.getTracks().forEach(t => t.stop()); cinemaLocalStream = null; }
+            iAmCinemaSharer = false;
+            sendSignal(callPeerId, 'cinema-end', {});
+            closeCinemaView();
+            const video = document.getElementById('cinema-video');
+            video.pause(); video.removeAttribute('src'); video.load();
         }
     </script>
 </body>
