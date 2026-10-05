@@ -1,18 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="default">
 <head>
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-CGJ069SGDJ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CGJ069SGDJ');
-</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zaplay</title>
+    <title>GeoChat Ultimate + UGS Games</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -3377,10 +3368,13 @@
       b.title = canonical;
       b.dataset.ugsNamesOnly = '1';
 
-      b.addEventListener('click', function () {
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
         var btn = this, original = btn.dataset.originalUgsValue;
-        btn.value = original;
-        setTimeout(function () { btn.value = btn.dataset.prettyUgsValue; }, 0);
+        if (typeof window.openUGSGame === 'function') {
+          window.openUGSGame(original, btn.dataset.prettyUgsValue || original);
+        }
       }, true);
 
       b.parentNode.insertBefore(card, b);
@@ -3914,56 +3908,303 @@
     })();
     </script>
 
+    <style>
+      /* ===== Player de jogos UGS / Minecraft ===== */
+      #geochat-game-player {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: none;
+        flex-direction: column;
+        background: #000;
+      }
+      #geochat-game-player.is-open { display: flex; }
+      #geochat-game-player .ggp-topbar {
+        height: 48px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        background: color-mix(in srgb, var(--app-panel, #111827) 94%, #000 6%);
+        color: var(--app-text, #fff);
+        border-bottom: 1px solid var(--app-border, #334155);
+        box-sizing: border-box;
+        user-select: none;
+      }
+      #geochat-game-player .ggp-title {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 800;
+        font-size: 14px;
+      }
+      #geochat-game-player .ggp-btn {
+        border: 0;
+        border-radius: 9px;
+        padding: 8px 11px;
+        background: var(--app-input, #1e293b);
+        color: var(--app-text, #fff);
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      #geochat-game-player .ggp-btn:hover { filter: brightness(1.15); }
+      #geochat-game-player .ggp-close {
+        background: #dc2626;
+        color: #fff;
+      }
+      #geochat-game-player .ggp-stage {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        background: #000;
+      }
+      #geochat-game-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+      }
+      #geochat-game-player .ggp-loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        color: #fff;
+        font-weight: 800;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .15s;
+      }
+      #geochat-game-player .ggp-loading.show { opacity: 1; }
+      /* Tela cheia nativa do navegador. O próprio navegador controla a saída. */
+      #geochat-game-player:fullscreen {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        border-radius: 0;
+        background: #000;
+        z-index: 2147483647;
+      }
+      #geochat-game-player:fullscreen .ggp-topbar {
+        display: none !important;
+      }
+      #geochat-game-player:fullscreen .ggp-stage {
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+      }
+      #geochat-game-player:fullscreen .ggp-frame {
+        width: 100%;
+        height: 100%;
+      }
+      @media (max-width: 700px) {
+        #geochat-game-player .ggp-topbar { gap: 5px; padding: 0 6px; }
+        #geochat-game-player .ggp-btn { padding: 7px 8px; font-size: 11px; }
+      }
+    </style>
+
+    <div id="geochat-game-player" aria-hidden="true">
+      <div class="ggp-topbar">
+        <div class="ggp-title" id="geochat-game-title">Jogo</div>
+        <button type="button" class="ggp-btn" id="geochat-game-fullscreen">⛶ Tela Cheia</button>
+        <button type="button" class="ggp-btn" id="geochat-game-newtab">↗ Abrir em nova aba</button>
+        <button type="button" class="ggp-btn ggp-close" id="geochat-game-close">✕ Fechar jogo</button>
+      </div>
+      <div class="ggp-stage">
+        <iframe class="ggp-frame" id="geochat-game-frame"
+          title="Player de jogo"
+          allow="fullscreen; autoplay; gamepad; pointer-lock; clipboard-read; clipboard-write"
+          allowfullscreen></iframe>
+        <div class="ggp-loading" id="geochat-game-loading">Carregando jogo…</div>
+      </div>
+    </div>
+
     <script>
     /*
-     * Abre uma nova aba about:blank e coloca o arquivo 26.2-wasm.html
-     * dentro dela. O endereço é calculado a partir da própria página,
-     * então não existe dependência de um caminho local do computador.
-     *
-     * Para publicar: mantenha geochat-ugs.html e 26.2-wasm.html
-     * na mesma pasta/domínio.
+     * Player único para todos os jogos do UGS + Minecraft 26.2.
+     * Os jogos UGS continuam vindo do catálogo público do UGS, mas agora
+     * são carregados dentro deste iframe em vez de abrir about:blank.
      */
-    window.openMinecraft262 = function () {
-        var tab = window.open('about:blank', '_blank');
-        if (!tab) {
-            alert('O navegador bloqueou a nova aba. Permita pop-ups para este site e tente novamente.');
-            return;
+    (function () {
+      var player = document.getElementById('geochat-game-player');
+      var frame = document.getElementById('geochat-game-frame');
+      var title = document.getElementById('geochat-game-title');
+      var loading = document.getElementById('geochat-game-loading');
+      var btnFs = document.getElementById('geochat-game-fullscreen');
+      var btnNew = document.getElementById('geochat-game-newtab');
+      var btnClose = document.getElementById('geochat-game-close');
+      if (!player || !frame) return;
+
+      var current = { url: '', title: '', srcdoc: '' };
+      var UGS_BASE = 'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile/UGS-Files/';
+
+      function escAttr(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function normalizeFileName(name) {
+        name = String(name || '');
+        if (name.includes('.') && name.lastIndexOf('.') > 0) return name;
+        return name + '.html';
+      }
+
+      function setLoading(show, text) {
+        loading.textContent = text || 'Carregando jogo…';
+        loading.classList.toggle('show', !!show);
+      }
+
+      function openPlayer(url, gameTitle, mode) {
+        current.url = url;
+        current.title = gameTitle || 'Jogo';
+        current.srcdoc = '';
+        title.textContent = current.title;
+        player.classList.add('is-open');
+        player.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        setLoading(true, 'Carregando ' + current.title + '…');
+        frame.removeAttribute('srcdoc');
+        frame.src = '';
+
+        if (mode === 'direct') {
+          /* Minecraft 26.2: arquivo local ao site, sem precisar transformar 75 MB em srcdoc. */
+          frame.src = url;
+          return;
         }
 
-        var gameUrl;
-        try {
-            gameUrl = new URL('26.2-wasm.html', document.baseURI).href;
-        } catch (e) {
-            gameUrl = '26.2-wasm.html';
+        /* UGS: busca o HTML e coloca no srcdoc para evitar bloqueios de frame do arquivo original. */
+        fetch(url, { cache: 'force-cache' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.text();
+          })
+          .then(function (html) {
+            var base = '<base href="' + escAttr(url.substring(0, url.lastIndexOf('/') + 1)) + '">';
+            html = html.replace(/<meta[^>]+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
+            if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, function (m) { return m + base; });
+            else html = base + html;
+            frame.srcdoc = html;
+            current.srcdoc = html;
+            frame.removeAttribute('src');
+          })
+          .catch(function () {
+            /* Fallback: se o fetch falhar, tenta o HTML diretamente no iframe. */
+            frame.src = url;
+          });
+      }
+
+      function closePlayer() {
+        exitNativeFullscreen();
+        frame.srcdoc = '';
+        frame.src = 'about:blank';
+        player.classList.remove('is-open');
+        player.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        current.url = '';
+        current.title = '';
+        current.srcdoc = '';
+      }
+
+      function openNewTab() {
+        if (!current.url) return;
+        var w = window.open('about:blank', '_blank');
+        if (!w) {
+          alert('O navegador bloqueou a nova aba. Permita pop-ups para este site.');
+          return;
         }
 
         try {
-            tab.document.open();
-            tab.document.write(
-                '<!doctype html>' +
-                '<html lang="pt-BR">' +
-                '<head>' +
-                '<meta charset="utf-8">' +
-                '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-                '<title>Minecraft 26.2</title>' +
-                '<style>' +
-                    'html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}' +
-                    'iframe{display:block;width:100%;height:100%;border:0}' +
-                '</style>' +
-                '</head>' +
-                '<body>' +
-                    '<iframe id="minecraft26Frame" src="' + gameUrl.replace(/"/g, '&quot;') + '"' +
-                    ' allow="fullscreen; pointer-lock; gamepad; autoplay" allowfullscreen></iframe>' +
-                '</body>' +
-                '</html>'
-            );
-            tab.document.close();
-            try { tab.focus(); } catch (e) {}
+          var d = w.document;
+          d.open();
+          d.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' +
+                  String(current.title || 'Jogo').replace(/[<>&"]/g, '') +
+                  '</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}iframe{display:block;width:100%;height:100%;border:0}</style></head><body></body></html>');
+          d.close();
+
+          var f = d.createElement('iframe');
+          f.allow = 'fullscreen; autoplay; gamepad; pointer-lock; clipboard-read; clipboard-write';
+          f.setAttribute('allowfullscreen', '');
+          f.style.cssText = 'display:block;width:100%;height:100%;border:0;background:#000';
+          if (current.srcdoc) f.srcdoc = current.srcdoc;
+          else f.src = current.url;
+          d.body.appendChild(f);
+          try { w.focus(); } catch (e) {}
         } catch (e) {
-            /* Fallback: abre o mesmo arquivo diretamente. */
-            try { tab.location.href = gameUrl; } catch (ignore) {}
+          /* A aba continua sendo about:blank; não redirecionamos para a URL do jogo. */
         }
-    };
+      }
+
+      function enterNativeFullscreen() {
+        if (!player.classList.contains('is-open')) return;
+        if (document.fullscreenElement) return;
+
+        var request = player.requestFullscreen || player.webkitRequestFullscreen || player.msRequestFullscreen;
+        if (!request) {
+          alert('Seu navegador não oferece tela cheia nativa.');
+          return;
+        }
+
+        try {
+          var p = request.call(player);
+          if (p && typeof p.catch === 'function') {
+            p.catch(function () {
+              /* O navegador pode negar fullscreen quando não houve gesto direto. */
+            });
+          }
+        } catch (e) {}
+      }
+
+      function exitNativeFullscreen() {
+        if (!document.fullscreenElement) return;
+        try {
+          var p = document.exitFullscreen ? document.exitFullscreen() :
+                  (document.webkitExitFullscreen ? document.webkitExitFullscreen() : null);
+          if (p && typeof p.catch === 'function') p.catch(function () {});
+        } catch (e) {}
+      }
+
+      function syncFullscreenUI() {
+        var active = document.fullscreenElement === player;
+        if (active) {
+          btnFs.textContent = '⛶ Tela Cheia';
+          document.body.style.overflow = 'hidden';
+          try { frame.focus(); } catch (e) {}
+        } else if (!player.classList.contains('is-open')) {
+          document.body.style.overflow = '';
+        }
+      }
+
+      frame.addEventListener('load', function () { setLoading(false); });
+      frame.addEventListener('error', function () { setLoading(false); });
+      btnFs.addEventListener('click', enterNativeFullscreen);
+      btnNew.addEventListener('click', openNewTab);
+      btnClose.addEventListener('click', closePlayer);
+      document.addEventListener('fullscreenchange', syncFullscreenUI);
+      document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
+
+      window.openUGSGame = function (rawName, prettyName) {
+        var file = normalizeFileName(rawName);
+        var url = UGS_BASE + encodeURIComponent(file);
+        openPlayer(url, prettyName || rawName, 'ugs');
+      };
+
+      window.openMinecraft262 = function () {
+        var url;
+        try { url = new URL('26.2-wasm.html', document.baseURI).href; }
+        catch (e) { url = '26.2-wasm.html'; }
+        openPlayer(url, 'Minecraft 26.2', 'direct');
+      };
+
+      window.closeGamePlayer = closePlayer;
+    })();
     </script>
 
 </body>
